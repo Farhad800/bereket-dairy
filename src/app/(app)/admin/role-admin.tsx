@@ -48,7 +48,7 @@ export default function RoleAdmin({ roles, matrix }: { roles: RoleRow[]; matrix:
             onClick={() => pick(r)}
             className={cn(
               "w-full rounded-xl border p-3 text-start transition",
-              r.id === selected ? "border-brand-500 bg-brand-50 dark:bg-brand-900" : "border-line bg-surface hover:border-brand-300",
+              r.id === selected ? "border-brand-500 bg-brand-50" : "border-line bg-surface hover:border-brand-300",
             )}
           >
             <span className="flex items-center gap-2 font-semibold">

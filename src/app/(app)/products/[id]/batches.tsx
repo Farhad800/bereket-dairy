@@ -39,7 +39,7 @@ export default async function Batches({ itemId, unit }: { itemId: string; unit: 
       {v.qty > 0.0005 && (
         <p className="mt-2 text-sm" data-testid="batches-value">
           {t("lot.inStock", { qty: `${q3(v.qty)} ${per}` })}: <b dir="ltr">{fmtIqd(v.value)} IQD</b>
-          {v.noCost > 0 && <span className="text-amber-600"> · {t("lot.noCost", { qty: `${q3(v.noCost)} ${per}` })}</span>}
+          {v.noCost > 0 && <span className="text-neutral-900"> · {t("lot.noCost", { qty: `${q3(v.noCost)} ${per}` })}</span>}
         </p>
       )}
       {rows.length === 0 ? <p className="mt-2 text-sm text-muted">{t("lot.none")}</p> : (
@@ -59,11 +59,11 @@ export default async function Batches({ itemId, unit }: { itemId: string; unit: 
                 return (
                   <tr key={l.id} className={l.left <= 0.0005 ? "text-muted" : ""} data-testid={`lot-${i}`}>
                     <td className="py-1.5 whitespace-nowrap">{formatDate(l.at, locale)}</td>
-                    <td className="py-1.5">{from(l)}{next && <span className="ms-2 rounded bg-brand-50 px-1.5 text-xs font-semibold text-brand-700 dark:bg-brand-900 dark:text-brand-200">{t("lot.next")}</span>}</td>
+                    <td className="py-1.5">{from(l)}{next && <span className="ms-2 rounded bg-brand-50 px-1.5 text-xs font-semibold text-brand-700">{t("lot.next")}</span>}</td>
                     <td className="py-1.5 text-end tabular-nums" dir="ltr">{q3(l.qtyIn)}</td>
                     <td className="py-1.5 text-end font-semibold tabular-nums" dir="ltr" data-testid={`lot-left-${i}`}>{l.left <= 0.0005 ? t("lot.usedUp") : q3(l.left)}</td>
                     <td className="py-1.5 text-end text-xs tabular-nums" dir="ltr">{l.price === null ? "—" : `${l.price.toLocaleString("en", { maximumFractionDigits: 6 })} ${l.currency}${l.rate ? ` × ${l.rate.toLocaleString("en", { maximumFractionDigits: 6 })}` : ""}`}</td>
-                    <td className="py-1.5 text-end font-semibold tabular-nums" dir="ltr" data-testid={`lot-cost-${i}`}>{u === null ? <span className="text-amber-600">?</span> : fmtIqd(u)}</td>
+                    <td className="py-1.5 text-end font-semibold tabular-nums" dir="ltr" data-testid={`lot-cost-${i}`}>{u === null ? <span className="text-neutral-900">?</span> : fmtIqd(u)}</td>
                   </tr>
                 );
               })}

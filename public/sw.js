@@ -1,8 +1,8 @@
-// Bereket FMS service worker.
+// Bereket Dairy service worker.
 // SECURITY: this app shows live, per-user factory data. Pages and API/server-action
 // responses are NEVER cached — only static build assets, icons and the offline page.
-const CACHE = "bereket-fms-v2";
-const PRECACHE = ["/offline", "/brand/bereket-logo.jpg", "/icons/icon-192.png"];
+const CACHE = "bereket-dairy-v1";
+const PRECACHE = ["/offline", "/brand/bereket-dairy-logo.jpg", "/icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
@@ -56,8 +56,8 @@ self.addEventListener("fetch", (e) => {
 // ───────── Push notifications (arrive even when the app is closed)
 self.addEventListener("push", (e) => {
   let d = {};
-  try { d = e.data ? e.data.json() : {}; } catch { d = { title: e.data ? e.data.text() : "Bereket FMS" }; }
-  const title = d.title || "Bereket FMS";
+  try { d = e.data ? e.data.json() : {}; } catch { d = { title: e.data ? e.data.text() : "Bereket Dairy" }; }
+  const title = d.title || "Bereket Dairy";
   const tasks = [
     self.registration.showNotification(title, {
       body: d.body || "",

@@ -75,8 +75,8 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                       <span className="block text-xs text-muted" dir="ltr">{l.product.code}</span>
                     </span>
                     <span className="text-end font-semibold tabular-nums">{n(l.quantity)}</span>
-                    <span className={`text-end tabular-nums ${(sold.get(l.productId) ?? 0) >= l.quantity ? "font-semibold text-emerald-700 dark:text-emerald-400" : "text-muted"}`}>{n(sold.get(l.productId) ?? 0)}</span>
-                    <span className={`text-end tabular-nums ${s >= l.quantity ? "text-emerald-700 dark:text-emerald-400" : "text-muted"}`}>{n(s)}</span>
+                    <span className={`text-end tabular-nums ${(sold.get(l.productId) ?? 0) >= l.quantity ? "font-semibold text-neutral-900" : "text-muted"}`}>{n(sold.get(l.productId) ?? 0)}</span>
+                    <span className={`text-end tabular-nums ${s >= l.quantity ? "text-neutral-900" : "text-muted"}`}>{n(s)}</span>
                   </li>
                 );
               })}

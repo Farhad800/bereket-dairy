@@ -38,7 +38,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             aria-selected={tab === k}
             className={cn(
               "-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap",
-              tab === k ? "border-brand-600 text-brand-700 dark:text-brand-200" : "border-transparent text-muted hover:text-ink",
+              tab === k ? "border-brand-600 text-brand-700" : "border-transparent text-muted hover:text-ink",
             )}
           >
             {tabLabel[k]}

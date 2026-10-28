@@ -55,7 +55,7 @@ export default function UserMenu({ name, role }: { name: string; role: string })
               await logoutAction();
             }}
           >
-            <button className="flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-sm text-red-600 hover:bg-surface-2">
+            <button className="flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-sm text-neutral-900 hover:bg-surface-2">
               <LogOut className="size-4" /> {t("common.signOut")}
             </button>
           </form>

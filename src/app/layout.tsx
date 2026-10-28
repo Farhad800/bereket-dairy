@@ -11,18 +11,18 @@ const latin = Inter({ subsets: ["latin", "latin-ext"], variable: "--font-latin",
 const arabic = Noto_Sans_Arabic({ subsets: ["arabic"], variable: "--font-arabic", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Bereket Plastic — Factory Management System", template: "%s · Bereket Plastic" },
-  description: "Bereket Plastic Factory Management System",
-  applicationName: "Bereket FMS",
+  title: { default: "Bereket Dairy — Factory Management System", template: "%s · Bereket Dairy" },
+  description: "Bereket Dairy Factory Management System",
+  applicationName: "Bereket Dairy",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.png", apple: "/icons/apple-touch-icon.png" },
-  appleWebApp: { capable: true, title: "Bereket FMS", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Bereket Dairy", statusBarStyle: "black-translucent" },
   robots: { index: false, follow: false }, // internal system — keep out of search engines
   other: { "mobile-web-app-capable": "yes" },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#294680",
+  themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

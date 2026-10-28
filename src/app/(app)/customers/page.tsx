@@ -38,8 +38,8 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         <div className="mb-4 grid gap-3 sm:grid-cols-3">
           {CURS.map((c) => (
             <Card key={c}>
-              <p className="text-xs text-muted">{t("cust.totalOwed", { cur: c })}</p><p className={cn("mt-1 text-2xl font-bold tabular-nums", owed[c] < 0 && "text-red-600")} dir="ltr" data-testid={`owed-${c}`}>{fmtMoney(owed[c])} {c}</p>
-              <p className="mt-2 text-xs text-muted">{t("cust.totalWeOwe", { cur: c })}</p><p className={cn("text-lg font-bold tabular-nums", weOwe[c] > 0 && "text-amber-600")} dir="ltr" data-testid={`weowe-${c}`}>{weOwe[c] > 0 ? "+" : ""}{fmtMoney(weOwe[c])} {c}</p>
+              <p className="text-xs text-muted">{t("cust.totalOwed", { cur: c })}</p><p className={cn("mt-1 text-2xl font-bold tabular-nums", owed[c] < 0 && "text-neutral-900")} dir="ltr" data-testid={`owed-${c}`}>{fmtMoney(owed[c])} {c}</p>
+              <p className="mt-2 text-xs text-muted">{t("cust.totalWeOwe", { cur: c })}</p><p className={cn("text-lg font-bold tabular-nums", weOwe[c] > 0 && "text-neutral-900")} dir="ltr" data-testid={`weowe-${c}`}>{weOwe[c] > 0 ? "+" : ""}{fmtMoney(weOwe[c])} {c}</p>
             </Card>
           ))}
         </div>
@@ -57,7 +57,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                   </div>
                   {money && (
                     <span className="self-center text-end text-sm font-bold tabular-nums" dir="ltr">
-                      {CURS.filter((x) => c.bal[x] !== 0).map((x) => <span key={x} className={cn("block", c.bal[x] < 0 ? "text-red-600" : "text-green-700 dark:text-green-400")}>{fmtMoney(c.bal[x])} {x}</span>)}
+                      {CURS.filter((x) => c.bal[x] !== 0).map((x) => <span key={x} className={cn("block", c.bal[x] < 0 ? "text-neutral-900" : "text-neutral-900")}>{fmtMoney(c.bal[x])} {x}</span>)}
                       {CURS.every((x) => c.bal[x] === 0) && <span className="text-muted">0</span>}
                     </span>
                   )}

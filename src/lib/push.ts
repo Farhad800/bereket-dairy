@@ -13,7 +13,7 @@ function configure() {
   if (ready !== null) return ready;
   const pub = process.env.VAPID_PUBLIC_KEY, priv = process.env.VAPID_PRIVATE_KEY;
   if (!pub || !priv) return (ready = false);
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:noreply@bereket-fms.app", pub, priv);
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:noreply@bereket-dairy.app", pub, priv);
   return (ready = true);
 }
 export const pushPublicKey = () => process.env.VAPID_PUBLIC_KEY ?? null;

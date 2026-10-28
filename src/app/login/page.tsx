@@ -11,20 +11,20 @@ export default async function LoginPage() {
   const t = await getTranslations();
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1.1fr_1fr]">
-      {/* Brand panel — uses the logo's own navy so the logo sits seamlessly */}
-      <section className="logo-tile relative flex flex-col items-center justify-center gap-6 px-6 py-10 text-center text-white lg:py-0">
+      {/* Brand panel: black, with the official logo shown exactly as supplied on its own white background */}
+      <section className="relative flex flex-col items-center justify-center gap-6 bg-black px-6 py-10 text-center text-white lg:py-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/brand/bereket-logo.jpg"
-          alt="Bereket Plastic logo"
-          width={568}
-          height={533}
-          className="h-auto w-48 rounded-3xl shadow-2xl ring-1 ring-white/15 sm:w-64 lg:w-72"
+          src="/brand/bereket-dairy-logo.jpg"
+          alt="Bereket Dairy logo"
+          width={604}
+          height={583}
+          className="h-auto w-48 rounded-3xl bg-white shadow-2xl sm:w-64 lg:w-72"
         />
         <div className="max-w-md">
           <p className="text-2xl font-bold tracking-tight sm:text-3xl">{t("app.company")}</p>
-          <p className="mt-1 text-brand-100">{t("app.system")}</p>
-          <p className="mt-4 hidden text-sm text-brand-200 lg:block">{t("app.tagline")}</p>
+          <p className="mt-1 text-neutral-200">{t("app.system")}</p>
+          <p className="mt-4 hidden text-sm text-neutral-400 lg:block">{t("app.tagline")}</p>
         </div>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-white/10 lg:hidden" />
       </section>

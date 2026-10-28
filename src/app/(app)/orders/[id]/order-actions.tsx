@@ -46,7 +46,7 @@ export default function OrderActions({ orderId, allowed }: { orderId: string; al
         })}
       </div>
       {asking && (
-        <Card className="border-amber-300 dark:border-amber-800">
+        <Card className="border-neutral-300">
           <p className="mb-2 text-sm font-semibold">{t(`act.${asking}`)}</p>
           <p className="mb-2 text-xs text-muted">{t(`act.${asking}Help`)}</p>
           <div className="flex flex-wrap gap-2">

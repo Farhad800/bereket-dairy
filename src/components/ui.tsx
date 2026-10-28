@@ -6,9 +6,9 @@ import type { ComponentProps, ReactNode } from "react";
 export const cn = (...c: Parameters<typeof clsx>) => twMerge(clsx(c));
 
 const buttonStyles = {
-  primary: "bg-brand-600 text-white hover:bg-brand-700 disabled:bg-brand-300",
+  primary: "bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-400",
   secondary: "border border-line bg-surface text-ink hover:bg-surface-2",
-  danger: "bg-red-600 text-white hover:bg-red-700",
+  danger: "border-2 border-black bg-white text-black hover:bg-black hover:text-white",
   ghost: "text-ink hover:bg-surface-2",
 };
 
@@ -79,13 +79,13 @@ export function Field({
       <span className="mb-1 block text-sm font-medium">{label}</span>
       {children}
       {hint && !error && <span className="mt-1 block text-xs text-muted">{hint}</span>}
-      {error && <span className="mt-1 block text-xs font-medium text-red-600">{error}</span>}
+      {error && <span className="mt-1 block text-xs font-semibold text-ink" role="alert">⚠ {error}</span>}
     </label>
   );
 }
 
 const inputCls =
-  "block w-full min-h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink placeholder:text-muted focus:border-brand-400 focus:outline-none";
+  "block w-full min-h-11 rounded-lg border border-line bg-surface px-3 text-sm text-ink placeholder:text-muted focus:border-black focus:outline-none disabled:bg-surface-2 disabled:text-muted";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input id={props.name} {...props} className={cn(inputCls, className)} />;
@@ -99,13 +99,14 @@ export function Select({ className, ...props }: ComponentProps<"select">) {
   return <select id={props.name} {...props} className={cn(inputCls, className)} />;
 }
 
+/** Black-and-white design: tones are told apart by weight and fill, never by color. */
 const badgeTones = {
-  gray: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
-  blue: "bg-brand-100 text-brand-800 dark:bg-brand-900 dark:text-brand-100",
-  green: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
-  amber: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
-  red: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200",
-  purple: "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200",
+  gray: "border border-line bg-surface-2 text-muted",
+  blue: "border border-black bg-white text-black",
+  green: "bg-black text-white",
+  amber: "border border-dashed border-black bg-white text-black",
+  red: "bg-black text-white ring-2 ring-black ring-offset-1",
+  purple: "bg-neutral-700 text-white",
 };
 export type Tone = keyof typeof badgeTones;
 
@@ -121,25 +122,32 @@ export function EmptyState({ children }: { children: ReactNode }) {
   return <div className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted">{children}</div>;
 }
 
+/** Messages in black and white: a problem has a thick black edge and an icon; success and notes are plain. */
 export function Alert({ tone = "red", children }: { tone?: "red" | "green" | "amber" | "blue"; children: ReactNode }) {
   const tones = {
-    red: "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200",
-    green: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
-    amber: "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200",
-    blue: "border-brand-200 bg-brand-50 text-brand-800 dark:border-brand-800 dark:bg-brand-900 dark:text-brand-100",
+    red: "border-2 border-black border-s-8 bg-white font-medium text-black",
+    green: "border border-black bg-white text-black",
+    amber: "border border-dashed border-black bg-white text-black",
+    blue: "border border-line bg-surface-2 text-ink",
   };
-  return <div role="status" className={cn("rounded-lg border px-3 py-2 text-sm", tones[tone])}>{children}</div>;
+  const mark = { red: "✕", green: "✓", amber: "!", blue: "i" }[tone];
+  return (
+    <div role={tone === "red" ? "alert" : "status"} className={cn("flex gap-2 rounded-lg px-3 py-2 text-sm", tones[tone])}>
+      <span aria-hidden className="font-bold">{mark}</span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
 }
 
-/** The official logo, unmodified, on a tile matching its own background. */
+/** The official Bereket Dairy logo, exactly as supplied (604 × 583), on white — its own background. */
 export function Logo({ size = 40, className }: { size?: number; className?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/brand/bereket-logo.jpg"
-      alt="Bereket Plastic"
+      src="/brand/bereket-dairy-logo.jpg"
+      alt="Bereket Dairy"
       width={size}
-      height={Math.round((size * 533) / 568)}
+      height={Math.round((size * 583) / 604)}
       className={cn("logo-tile rounded-xl object-contain", className)}
     />
   );

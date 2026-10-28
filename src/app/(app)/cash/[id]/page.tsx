@@ -46,7 +46,7 @@ export default async function CashEntryPage({ params, searchParams }: { params: 
         <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
           {pair.map((p) => {
             const a = Number(p.amount);
-            return <div key={p.id}><dt className="text-xs text-muted">{a < 0 ? t("cash.moneyOut") : t("cash.moneyIn")} · {p.safe.name}</dt><dd className={`text-xl font-bold tabular-nums ${a < 0 ? "text-red-600" : "text-green-700 dark:text-green-400"}`} dir="ltr" data-testid={a < 0 ? "side-out" : "side-in"}>{a < 0 ? "−" : "+"}{fmtMoney(Math.abs(a))} {p.currency}</dd></div>;
+            return <div key={p.id}><dt className="text-xs text-muted">{a < 0 ? t("cash.moneyOut") : t("cash.moneyIn")} · {p.safe.name}</dt><dd className={`text-xl font-bold tabular-nums ${a < 0 ? "text-neutral-900" : "text-neutral-900"}`} dir="ltr" data-testid={a < 0 ? "side-out" : "side-in"}>{a < 0 ? "−" : "+"}{fmtMoney(Math.abs(a))} {p.currency}</dd></div>;
           })}
           {e.rate && pair.length === 2 && row(t("cash.rateLabel"), rateText(Number(e.rate), pair[0].currency, pair[1].currency), true)}
           {e.category && row(t("cash.category"), catName(t, e.category))}

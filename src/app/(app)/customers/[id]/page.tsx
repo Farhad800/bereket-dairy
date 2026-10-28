@@ -56,7 +56,7 @@ export default async function CustomerPage({ params, searchParams }: { params: P
           {(shown.length ? shown : (["IQD"] as Cur[])).map((x) => (
             <Card key={x}>
               <p className="text-xs text-muted">{t("cust.balance", { cur: x })}</p>
-              <p className={cn("mt-1 text-2xl font-bold tabular-nums", run[x] < 0 ? "text-red-600" : run[x] > 0 ? "text-green-700 dark:text-green-400" : "")} dir="ltr" data-testid={`balance-${x}`}>{fmtMoney(run[x])} {x}</p>
+              <p className={cn("mt-1 text-2xl font-bold tabular-nums", run[x] < 0 ? "text-neutral-900" : run[x] > 0 ? "text-neutral-900" : "")} dir="ltr" data-testid={`balance-${x}`}>{fmtMoney(run[x])} {x}</p>
               <p className="text-xs text-muted">{run[x] < 0 ? t("cust.owesUs") : run[x] > 0 ? t("cust.weOwe") : t("cust.settled")}</p>
             </Card>
           ))}
@@ -83,8 +83,8 @@ export default async function CustomerPage({ params, searchParams }: { params: P
                     <td className="px-4 py-2 whitespace-nowrap">{formatDateTime(r.at, locale)}</td>
                     <td className="px-3 py-2"><Link href={r.href} className="font-semibold text-brand-600 hover:underline" dir="ltr">{r.number}</Link> <Badge tone={r.kind === "sale" ? "purple" : r.kind === "purchase" ? "blue" : r.kind === "paid" ? "amber" : "green"}>{t(`cust.kind.${r.kind}`)}</Badge><div className="text-xs text-muted">{r.detail}</div></td>
                     {money && <>
-                      <td className={cn("px-3 py-2 text-end tabular-nums", r.amount < 0 ? "text-red-600" : "text-green-700 dark:text-green-400")} dir="ltr">{r.amount > 0 ? "+" : ""}{fmtMoney(r.amount)} {r.cur}</td>
-                      <td className={cn("px-4 py-2 text-end font-semibold tabular-nums", r.balance < 0 && "text-red-600")} dir="ltr">{fmtMoney(r.balance)} {r.cur}</td>
+                      <td className={cn("px-3 py-2 text-end tabular-nums", r.amount < 0 ? "text-neutral-900" : "text-neutral-900")} dir="ltr">{r.amount > 0 ? "+" : ""}{fmtMoney(r.amount)} {r.cur}</td>
+                      <td className={cn("px-4 py-2 text-end font-semibold tabular-nums", r.balance < 0 && "text-neutral-900")} dir="ltr">{fmtMoney(r.balance)} {r.cur}</td>
                     </>}
                   </tr>
                 ))}

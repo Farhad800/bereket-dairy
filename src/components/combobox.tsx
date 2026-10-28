@@ -69,7 +69,7 @@ export default function Combobox({
         onClick={() => setOpen((o) => !o)}
         className={cn(
           "flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border bg-surface px-3 text-start text-sm",
-          invalid ? "border-red-500" : "border-line",
+          invalid ? "border-neutral-500" : "border-line",
         )}
       >
         <span className={cn("truncate", !selected && "text-muted")}>

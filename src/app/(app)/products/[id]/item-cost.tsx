@@ -37,7 +37,7 @@ export default function ItemCost({ id, unit, saved, canEdit }: { id: string; uni
               {saved.currency !== "IQD" && <span className="block text-xs text-muted" dir="ltr">{saved.price.toLocaleString("en", { maximumFractionDigits: 6 })} {saved.currency} × {saved.rate.toLocaleString("en", { maximumFractionDigits: 6 })} ({t("cost.rateShort", { cur: saved.currency })})</span>}
               <span className="block text-xs text-muted">{t("cost.updated", { at: saved.at })}</span>
             </p>
-          ) : <p className="text-sm text-amber-600">{t("cost.none")}</p>}
+          ) : <p className="text-sm text-neutral-900">{t("cost.none")}</p>}
           {canEdit && <Button variant="secondary" className="mt-2" onClick={() => setEdit(true)}><Pencil className="size-4" /> {saved ? t("cost.change") : t("cost.set")}</Button>}
         </>
       ) : (

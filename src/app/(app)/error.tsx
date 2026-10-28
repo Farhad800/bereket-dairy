@@ -11,7 +11,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
   useEffect(() => console.error(error), [error]);
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-16 text-center">
-      <AlertTriangle className="size-10 text-amber-500" aria-hidden />
+      <AlertTriangle className="size-10 text-neutral-900" aria-hidden />
       <h1 className="text-lg font-bold">{t("ui.errorTitle")}</h1>
       <p className="text-sm text-muted">{t("ui.errorBody")}</p>
       {error.digest && <p className="font-mono text-xs text-muted" dir="ltr">ref: {error.digest}</p>}

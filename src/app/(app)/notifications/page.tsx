@@ -42,7 +42,7 @@ export default async function NotificationsPage() {
                 </>
               );
               return (
-                <li key={n.id} className={cn(!n.readAt && "bg-brand-50/60 dark:bg-brand-900/30")}>
+                <li key={n.id} className={cn(!n.readAt && "bg-brand-50/60")}>
                   {n.link ? (
                     <Link href={`/notifications/open/${n.id}`} className="block px-4 py-3 hover:bg-surface-2">{inner}</Link>
                   ) : (

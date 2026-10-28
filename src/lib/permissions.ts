@@ -100,7 +100,7 @@ export const DEFAULT_ROLES: { name: string; description: string; permissions: Pe
     description: "Records items coming in and going out. Sees quantities only — never prices or money.",
     permissions: p(
       ...BUSINESS_VIEW,
-      "warehouse:export",
+      "warehouse:export", "reports:export", // quantity reports only: money reports stay closed (they need buy / sell / safe)
       "stock:input", "stock:output",
     ),
   },

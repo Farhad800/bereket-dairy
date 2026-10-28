@@ -14,7 +14,7 @@ export const settingsSchema = z.object({
   paper: z.enum(["A4", "A5"]).default("A4"),
   margin: z.coerce.number().min(3).max(30).default(10), // mm
   fontSize: z.coerce.number().min(8).max(18).default(11), // pt
-  accent: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#294680"),
+  accent: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#000000"),
   bannerHeight: z.coerce.number().min(10).max(120).default(40), // mm, the most the banner may take
   title: z.string().max(80).default(""),
   headerText: z.string().max(600).default(""),

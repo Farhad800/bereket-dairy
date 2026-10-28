@@ -89,7 +89,6 @@ export default function LayoutEditor({ layout, samples }: { layout: LayoutRow | 
             <label className="text-sm font-medium">{t("rc2.paper")}<Select value={s.paper} onChange={(e) => set("paper", e.target.value as "A4" | "A5")} className="mt-1" aria-label={t("rc2.paper")}><option value="A4">A4</option><option value="A5">A5</option></Select></label>
             <label className="text-sm font-medium">{t("rc2.fontSize")}<Input type="number" min={8} max={18} value={s.fontSize} onChange={(e) => set("fontSize", Number(e.target.value) || 11)} className="mt-1" dir="ltr" aria-label={t("rc2.fontSize")} /></label>
             <label className="text-sm font-medium">{t("rc2.margin")}<Input type="number" min={3} max={30} value={s.margin} onChange={(e) => set("margin", Number(e.target.value) || 10)} className="mt-1" dir="ltr" aria-label={t("rc2.margin")} /></label>
-            <label className="text-sm font-medium">{t("rc2.color")}<Input type="color" value={s.accent} onChange={(e) => set("accent", e.target.value)} className="mt-1 h-11 p-1" aria-label={t("rc2.color")} /></label>
           </div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} className="size-5 accent-brand-600" /> {t("rc2.default")}</label>
         </Card>
@@ -150,7 +149,7 @@ export default function LayoutEditor({ layout, samples }: { layout: LayoutRow | 
 
       <div className="min-w-0">
         <p className="mb-2 text-sm text-muted">{samples[docType] ? t("rc2.previewReal", { number: samples[docType]!.number }) : t("rc2.previewSample")}</p>
-        <div className="overflow-auto rounded-xl border border-line bg-slate-200 p-4 dark:bg-slate-800" data-testid="receipt-preview">
+        <div className="overflow-auto rounded-xl border border-line bg-neutral-200 p-4" data-testid="receipt-preview">
           <div className="mx-auto w-fit origin-top shadow-lg" style={{ zoom: 0.75 }}>
             <Receipt settings={s} banner={banner} lang={language} data={data} />
           </div>

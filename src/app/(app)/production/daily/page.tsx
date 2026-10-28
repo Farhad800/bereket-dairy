@@ -51,7 +51,7 @@ export default async function DailyEntryPage({ searchParams }: { searchParams: P
 
   return (
     <>
-      <Link href={`/production?day=${day}`} className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300">
+      <Link href={`/production?day=${day}`} className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">
         <ArrowLeft className="size-4 rtl:rotate-180" /> {t("nav.production")}
       </Link>
       <PageHeader title={t("daily.title")} subtitle={t("daily.subtitle", { date: formatDate(dayValue(day), locale) })} />

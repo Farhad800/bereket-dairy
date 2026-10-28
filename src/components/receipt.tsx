@@ -74,7 +74,7 @@ export default function Receipt({ settings: s, banner, lang, data: d }: { settin
     [lb("phone"), f.phone ? d.phone : null, true],
     [lb("by"), f.by ? d.by : null],
   ];
-  const border = `1px solid ${s.accent}`;
+  const border = `1px solid ${"#000000"}`;
 
   return (
     <div className="receipt-page" dir={rtl ? "rtl" : "ltr"} lang={rtl ? "ar" : lang}
@@ -85,10 +85,10 @@ export default function Receipt({ settings: s, banner, lang, data: d }: { settin
       )}
       {!banner && s.showLogo && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src="/brand/bereket-logo.jpg" alt="Bereket Plastic" style={{ height: "22mm", marginBottom: "3mm" }} />
+        <img src="/brand/bereket-dairy-logo.jpg" alt="Bereket Dairy" style={{ height: "22mm", marginBottom: "3mm", alignSelf: "center" }} />
       )}
       {s.headerText && <p style={{ whiteSpace: "pre-wrap", textAlign: "center", fontSize: "0.9em", margin: "0 0 2mm" }}>{s.headerText}</p>}
-      <h1 style={{ textAlign: "center", color: s.accent, fontSize: "1.6em", fontWeight: 700, margin: "1mm 0 3mm", borderBottom: `2px solid ${s.accent}`, paddingBottom: "2mm" }}>{s.title || lb(d.kind)}</h1>
+      <h1 style={{ textAlign: "center", color: "#000000", fontSize: "1.6em", fontWeight: 700, margin: "1mm 0 3mm", borderBottom: `2px solid ${"#000000"}`, paddingBottom: "2mm" }}>{s.title || lb(d.kind)}</h1>
 
       <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "4mm" }}>
         <tbody>
@@ -111,18 +111,18 @@ export default function Receipt({ settings: s, banner, lang, data: d }: { settin
               ...(d.payment.docNumber ? [[lb("forDoc"), d.payment.docNumber], [lb("docTotal"), `${money(d.payment.docTotal ?? 0)} ${d.currency}`]] : []),
               ...(d.balance && f.balance ? [[lb("prevBalance"), `${money(d.balance.before)} ${d.currency}`], [lb("newBalance"), `${money(d.balance.after)} ${d.currency}`]]
                 : [...(f.paid && d.payment.docNumber ? [[lb("paidSoFar"), `${money(d.paid)} ${d.currency}`]] : []), ...(f.owed && d.payment.docNumber ? [[lb("owed"), `${money(d.owed)} ${d.currency}`]] : [])])].map(([k, v], i) => (
-              <tr key={k}><td style={{ border, padding: "2mm", background: i === 0 ? `${s.accent}18` : undefined, width: "45%" }}>{k}</td><td style={{ border, padding: "2mm", fontWeight: 700, fontSize: i === 0 ? "1.3em" : undefined }} dir="ltr">{v}</td></tr>
+              <tr key={k}><td style={{ border, padding: "2mm", background: i === 0 ? `${"#000000"}18` : undefined, width: "45%" }}>{k}</td><td style={{ border, padding: "2mm", fontWeight: 700, fontSize: i === 0 ? "1.3em" : undefined }} dir="ltr">{v}</td></tr>
             ))}
           </tbody>
         </table>
       ) : (
         <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "3mm" }}>
           <thead>
-            <tr>{cols.map((c) => <th key={c.key} style={{ border, background: s.accent, color: "white", padding: "1.8mm 2mm", textAlign: num(c.key) ? "center" : "start", fontWeight: 600 }}>{lb(c.key)}</th>)}</tr>
+            <tr>{cols.map((c) => <th key={c.key} style={{ border, background: "#000000", color: "white", padding: "1.8mm 2mm", textAlign: num(c.key) ? "center" : "start", fontWeight: 600 }}>{lb(c.key)}</th>)}</tr>
           </thead>
           <tbody>
             {d.lines.map((l, i) => (
-              <tr key={i} style={{ background: i % 2 ? "#f5f7fb" : undefined }}>
+              <tr key={i} style={{ background: i % 2 ? "#f5f5f5" : undefined }}>
                 {cols.map((c) => <td key={c.key} style={{ border, padding: "1.5mm 2mm", textAlign: num(c.key) ? "center" : "start" }} dir={num(c.key) || c.key === "code" ? "ltr" : undefined}>{cell(c.key, l, i)}</td>)}
               </tr>
             ))}
@@ -149,7 +149,7 @@ export default function Receipt({ settings: s, banner, lang, data: d }: { settin
         </table>
       )}
 
-      {f.words && wordsLang.map((wl) => <p key={wl} dir={wl === "ar" ? "rtl" : "ltr"} style={{ margin: "1mm 0", padding: "2mm", background: "#f5f7fb", borderInlineStart: `3px solid ${s.accent}` }}>{amountInWords(wordsAmount, d.currency, wl)}</p>)}
+      {f.words && wordsLang.map((wl) => <p key={wl} dir={wl === "ar" ? "rtl" : "ltr"} style={{ margin: "1mm 0", padding: "2mm", background: "#f5f7fb", borderInlineStart: `3px solid ${"#000000"}` }}>{amountInWords(wordsAmount, d.currency, wl)}</p>)}
       {f.note && d.note && <p style={{ marginTop: "2mm", whiteSpace: "pre-wrap" }}><span style={{ color: "#555" }}>{lb("note")}: </span>{d.note}</p>}
 
       <div style={{ flex: 1 }} />
@@ -160,7 +160,7 @@ export default function Receipt({ settings: s, banner, lang, data: d }: { settin
           ))}
         </div>
       )}
-      {s.footerText && <p style={{ whiteSpace: "pre-wrap", textAlign: "center", fontSize: "0.85em", color: "#444", borderTop: `1px solid ${s.accent}`, paddingTop: "2mm", marginTop: "4mm" }}>{s.footerText}</p>}
+      {s.footerText && <p style={{ whiteSpace: "pre-wrap", textAlign: "center", fontSize: "0.85em", color: "#444", borderTop: `1px solid ${"#000000"}`, paddingTop: "2mm", marginTop: "4mm" }}>{s.footerText}</p>}
     </div>
   );
 }

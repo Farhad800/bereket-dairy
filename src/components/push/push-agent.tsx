@@ -66,7 +66,7 @@ export default function PushAgent({ publicKey, unread }: { publicKey: string | n
   return (
     <div role="dialog" aria-label={t("askTitle")} className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-2xl border border-line bg-surface p-4 shadow-xl sm:inset-x-auto sm:end-6 sm:bottom-6" style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
       <div className="flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700 dark:bg-brand-900 dark:text-brand-200"><BellRing className="size-5" /></span>
+        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700"><BellRing className="size-5" /></span>
         <div className="min-w-0 flex-1">
           <p className="font-semibold">{t("askTitle")}</p>
           <p className="mt-0.5 text-sm text-muted">{state === "ios-install" ? t("iosInstall") : t("askBody")}</p>

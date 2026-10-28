@@ -110,7 +110,7 @@ export default function MasterList({
                 )}
                 {r.links && r.links.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                    {r.links.map((l) => <Link key={l.href} href={l.href} className="font-semibold text-brand-600 hover:underline dark:text-brand-300">{l.label}</Link>)}
+                    {r.links.map((l) => <Link key={l.href} href={l.href} className="font-semibold text-brand-600 hover:underline">{l.label}</Link>)}
                   </div>
                 )}
                 {(canEdit || canArchive) && (

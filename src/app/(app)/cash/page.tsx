@@ -49,7 +49,7 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
         {CURS.map((c) => (
           <Card key={c}>
             <p className="text-xs text-muted">{t(`cash.cur.${c}`)}</p>
-            <p className={cn("mt-1 text-2xl font-bold tabular-nums", bal[c] < 0 && "text-red-600")} dir="ltr" data-testid={`bal-${c}`}>{fmtMoney(bal[c])} {c}</p>
+            <p className={cn("mt-1 text-2xl font-bold tabular-nums", bal[c] < 0 && "text-neutral-900")} dir="ltr" data-testid={`bal-${c}`}>{fmtMoney(bal[c])} {c}</p>
           </Card>
         ))}
       </div>
@@ -59,7 +59,7 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
             className={cn("rounded-xl border bg-surface p-4 hover:bg-surface-2", sp.safe === x.id ? "border-brand-600 ring-1 ring-brand-600" : "border-line")}>
             <p className="flex items-center gap-2 font-semibold"><Vault className="size-4 text-muted" />{x.name}</p>
             <ul className="mt-1 space-y-0.5 text-sm tabular-nums" dir="ltr" data-testid={`safe-${x.name}`}>
-              {x.currencies.map((c) => <li key={c} className={cn(x.balance![c] < 0 && "text-red-600")}>{fmtMoney(x.balance![c])} {c}</li>)}
+              {x.currencies.map((c) => <li key={c} className={cn(x.balance![c] < 0 && "text-neutral-900")}>{fmtMoney(x.balance![c])} {c}</li>)}
             </ul>
           </Link>
         ))}
@@ -74,7 +74,7 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
       <div className="mb-4 flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {tabs.map((k) => (
           <Link key={k} href={`/cash?tab=${k}`} role="tab" aria-selected={tab === k}
-            className={cn("-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap", tab === k ? "border-brand-600 text-brand-700 dark:text-brand-200" : "border-transparent text-muted hover:text-ink")}>
+            className={cn("-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold whitespace-nowrap", tab === k ? "border-brand-600 text-brand-700" : "border-transparent text-muted hover:text-ink")}>
             {t(`cash.tab.${k}`)}
           </Link>
         ))}
@@ -115,7 +115,7 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
                           {safes.length > 1 && <span className="inline-flex items-center gap-1 text-xs text-muted"><Vault className="size-3" />{safeName.get(e.safeId)}</span>}</p>
                         <p className="mt-0.5 truncate text-xs text-muted">{formatDateTime(e.createdAt, locale)} · {users.find((u) => u.id === e.createdById)?.fullName ?? "—"}{e.note && ` · ${e.note}`}</p>
                       </div>
-                      <span className={cn("self-center text-end font-bold tabular-nums", a < 0 ? "text-red-600" : "text-green-700 dark:text-green-400")} dir="ltr">{a < 0 ? "−" : "+"}{fmtMoney(Math.abs(a))} {e.currency}</span>
+                      <span className={cn("self-center text-end font-bold tabular-nums", a < 0 ? "text-neutral-900" : "text-neutral-900")} dir="ltr">{a < 0 ? "−" : "+"}{fmtMoney(Math.abs(a))} {e.currency}</span>
                     </Link>
                   </li>
                 );
@@ -153,7 +153,7 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
                 <li key={r.id + r.cur}>
                   <Link href={r.href} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-surface-2">
                     <span className="min-w-0"><span className="block truncate font-medium">{r.name}</span><span className="text-xs text-muted" dir="ltr">{r.code}</span></span>
-                    <span className={`font-bold tabular-nums ${type === "SELL" ? "text-red-600" : "text-amber-600"}`} dir="ltr">{type === "SELL" ? "−" : "+"}{fmtMoney(r.owed)} {r.cur}</span>
+                    <span className={`font-bold tabular-nums ${type === "SELL" ? "text-neutral-900" : "text-neutral-900"}`} dir="ltr">{type === "SELL" ? "−" : "+"}{fmtMoney(r.owed)} {r.cur}</span>
                   </Link>
                 </li>
               ))}
@@ -165,7 +165,7 @@ export default async function CashPage({ searchParams }: { searchParams: Promise
                 <li key={d.id}>
                   <Link href={`/stock/${d.id}`} className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-surface-2">
                     <span className="min-w-0"><span className="block truncate font-medium">{d.party}</span><span className="text-xs text-muted" dir="ltr">{d.number} · {formatDateTime(d.createdAt, locale)} · {t("sd.total")} {fmtMoney(Number(d.total))} {d.currency}</span></span>
-                    <span className="font-bold text-amber-600 tabular-nums" dir="ltr">{fmtMoney(d.owed)} {d.currency}</span>
+                    <span className="font-bold text-neutral-900 tabular-nums" dir="ltr">{fmtMoney(d.owed)} {d.currency}</span>
                   </Link>
                 </li>
               ))}

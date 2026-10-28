@@ -15,7 +15,7 @@ export default async function SetupPage() {
         <div className="mb-4 flex items-center gap-3">
           <Logo size={56} />
           <div>
-            <h1 className="text-lg font-bold">Bereket Plastic — first-time setup</h1>
+            <h1 className="text-lg font-bold">Bereket Dairy — first-time setup</h1>
             <p className="text-sm text-muted">Create the first administrator account. This page closes after use.</p>
           </div>
         </div>

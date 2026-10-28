@@ -115,7 +115,7 @@ export default function CashForm({ allowed, initialType, initialSafe, safes, cat
             <div>
               {moneyBox("from", t("safe.exFromAmount"), "ex-from")}
               <span className="text-xs text-muted" dir="ltr">{t("cash.inSafe")}: {fmtMoney(have(safeId, cur))} {cur}</span>
-              {over && <span className="block text-xs font-semibold text-red-600">{t("cash.notEnough")}</span>}
+              {over && <span className="block text-xs font-semibold text-neutral-900">{t("cash.notEnough")}</span>}
             </div>
           </div>
           <div className="my-3 flex items-center gap-3 border-y border-line py-3">
@@ -141,7 +141,7 @@ export default function CashForm({ allowed, initialType, initialSafe, safes, cat
             <label className="text-sm font-medium">{t("cash.amount")} *
               <Input type="number" inputMode="decimal" min={0} step="any" value={amount} onChange={(e) => setAmount(e.target.value)} dir="ltr" className="mt-1 text-end" aria-label={t("cash.amount")} />
               {goesOut && <span className="text-xs font-normal text-muted" dir="ltr">{t("cash.inSafe")}: {fmtMoney(have(safeId, cur))} {cur}</span>}
-              {over && <span className="block text-xs font-semibold text-red-600">{t("cash.notEnough")}</span>}
+              {over && <span className="block text-xs font-semibold text-neutral-900">{t("cash.notEnough")}</span>}
             </label>
             {type === "OUT" && (
               <label className="text-sm font-medium">{t("cash.category")} *

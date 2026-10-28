@@ -83,7 +83,7 @@ export default function OrderForm({ products, initial }: { products: Product[]; 
                   dir="ltr"
                 />
                 {qty[p.id] && (
-                  <button type="button" aria-label={t("order.removeLine")} onClick={() => setQty((q) => ({ ...q, [p.id]: "" }))} className="rounded-md p-1.5 text-muted hover:text-red-600">
+                  <button type="button" aria-label={t("order.removeLine")} onClick={() => setQty((q) => ({ ...q, [p.id]: "" }))} className="rounded-md p-1.5 text-muted hover:text-neutral-900">
                     <X className="size-4" />
                   </button>
                 )}

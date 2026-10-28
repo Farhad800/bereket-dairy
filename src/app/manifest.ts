@@ -2,16 +2,16 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Bereket Plastic — Factory Management System",
-    short_name: "Bereket FMS",
-    description: "Orders, production, service, quality control and warehouse for Bereket Plastic.",
+    name: "Bereket Dairy — Factory Management System",
+    short_name: "Bereket Dairy",
+    description: "Production, warehouse, orders, sales and money for the Bereket dairy factory.",
     id: "/",
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",
     orientation: "any", // tablets on the floor are often landscape
-    background_color: "#26417b",
-    theme_color: "#294680",
+    background_color: "#ffffff",
+    theme_color: "#000000",
     lang: "en",
     dir: "ltr",
     icons: [

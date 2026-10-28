@@ -35,7 +35,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
 
   return (
     <>
-      <Link href="/reports" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline dark:text-brand-300">
+      <Link href="/reports" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline">
         <ArrowLeft className="size-4 rtl:rotate-180" /> {t("nav.reports")}
       </Link>
       <PageHeader

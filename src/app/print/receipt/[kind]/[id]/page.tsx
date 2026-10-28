@@ -28,14 +28,14 @@ export default async function PrintReceipt({ params, searchParams }: { params: P
   await audit({ userId: me.id, action: "receipt.print", entityType: kind === "doc" ? "StockDoc" : "CashEntry", entityId: id, after: { number: data.number, layout: chosen?.name ?? "standard" } });
 
   return (
-    <main className="min-h-screen bg-slate-200 py-6 print:bg-white print:py-0">
+    <main className="min-h-screen bg-neutral-200 py-6 print:bg-white print:py-0">
       <style>{`@page { size: ${settings.paper} portrait; margin: 0 } @media print { body { background: white } .no-print { display: none !important } .receipt-page { box-shadow: none !important; margin: 0 !important } }`}</style>
       <div className="no-print mx-auto mb-4 flex max-w-[210mm] flex-wrap items-center justify-between gap-3 px-3">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <span className="font-semibold">{t("rc2.layout")}:</span>
-          {layouts.length === 0 && <span className="text-gray-700">{t("rc2.standard")} {can(me, "receipts:manage") && <Link href="/receipts/new" className="text-[#294680] underline">{t("rc2.new")}</Link>}</span>}
+          {layouts.length === 0 && <span className="text-neutral-900">{t("rc2.standard")} {can(me, "receipts:manage") && <Link href="/receipts/new" className="text-black underline">{t("rc2.new")}</Link>}</span>}
           {layouts.map((l) => (
-            <Link key={l.id} href={`?layout=${l.id}`} replace className={`rounded-lg border px-3 py-1.5 ${l.id === chosen?.id ? "border-[#294680] bg-[#294680] text-white" : "border-gray-400 bg-white text-black"}`} aria-current={l.id === chosen?.id ? "true" : undefined}>
+            <Link key={l.id} href={`?layout=${l.id}`} replace className={`rounded-lg border px-3 py-1.5 ${l.id === chosen?.id ? "border-black bg-black text-white" : "border-neutral-400 bg-white text-black"}`} aria-current={l.id === chosen?.id ? "true" : undefined}>
               {l.name}{l.isDefault ? " ★" : ""}
             </Link>
           ))}

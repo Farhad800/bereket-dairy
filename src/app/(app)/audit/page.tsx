@@ -63,7 +63,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge tone={r.action.startsWith("auth.") ? "gray" : r.action.includes("delete") || r.action.includes("cancel") ? "red" : "blue"}>{actionLabel(r.action)}</Badge>
                       <span className="text-xs text-muted">{t.has(`audit.entity.${r.entityType}`) ? t(`audit.entity.${r.entityType}`) : r.entityType}</span>
-                      {href && <Link href={href} className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-300">{t("audit.open")}</Link>}
+                      {href && <Link href={href} className="text-xs font-semibold text-brand-600 hover:underline">{t("audit.open")}</Link>}
                     </div>
                     {r.reason && <p className="mt-1"><span className="text-muted">{t("audit.reason")}:</span> {r.reason}</p>}
                     {lines.length > 0 && (

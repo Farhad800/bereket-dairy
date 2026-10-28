@@ -23,8 +23,8 @@ function SecretBox({ username, password, onClose }: { username: string; password
       <p className="font-semibold">{t("temporaryPassword")}</p>
       <p className="mt-1 text-xs">{t("temporaryPasswordHelp")}</p>
       <div className="mt-2 flex flex-wrap items-center gap-2" dir="ltr">
-        <code className="rounded bg-white/70 px-2 py-1 text-sm dark:bg-black/30">{username}</code>
-        <code className="rounded bg-white/70 px-2 py-1 text-base font-bold tracking-wider dark:bg-black/30">{password}</code>
+        <code className="rounded bg-white/70 px-2 py-1 text-sm">{username}</code>
+        <code className="rounded bg-white/70 px-2 py-1 text-base font-bold tracking-wider">{password}</code>
         <Button size="sm" variant="secondary" type="button" onClick={() => navigator.clipboard?.writeText(password)}>
           <Copy className="size-3.5" />
         </Button>

@@ -29,26 +29,26 @@ export default async function PrintReport({ params, searchParams }: { params: Pr
     <main className={`mx-auto bg-white p-6 text-black print:p-0 ${landscape ? "max-w-[297mm]" : "max-w-[210mm]"}`}>
       <style>{`@page { size: A4 ${landscape ? "landscape" : "portrait"}; margin: 10mm } @media print { body { background: white } .no-print { display: none } thead { display: table-header-group } }`}</style>
       <div className="no-print mb-4 flex items-center justify-between gap-3">
-        <p className="text-sm text-gray-600">{t("rep.pdfHint")}</p>
+        <p className="text-sm text-neutral-900">{t("rep.pdfHint")}</p>
         <PrintButton label={t("rep.printSave")} />
       </div>
-      <header className="flex items-start justify-between gap-4 border-b-2 border-[#294680] pb-3">
+      <header className="flex items-start justify-between gap-4 border-b-2 border-black pb-3">
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/bereket-logo.jpg" alt="Bereket Plastic" width={70} height={65} className="rounded-lg" />
+          <img src="/brand/bereket-dairy-logo.jpg" alt="Bereket Dairy" width={70} height={68} className="rounded-lg" />
           <div>
-            <p className="text-lg font-bold text-[#294680]">Bereket Plastic</p>
-            <p className="text-xs text-gray-600">{t("app.system")}</p>
+            <p className="text-lg font-bold">{t("app.company")}</p>
+            <p className="text-xs text-neutral-900">{t("app.system")}</p>
           </div>
         </div>
         <div className="text-end">
           <p className="text-xl font-bold">{t(`rep.r.${key}.title`)}</p>
-          {summary.map((s) => <p key={s} className="text-xs text-gray-700">{s}</p>)}
+          {summary.map((s) => <p key={s} className="text-xs text-neutral-900">{s}</p>)}
         </div>
       </header>
       <div className="my-4"><KpiRow kpis={result.kpis} t={t} locale={locale} print /></div>
-      {result.rows.length === 0 ? <p className="py-8 text-center text-sm text-gray-600">{t("rep.noData")}</p> : <ReportTable result={result} t={t} locale={locale} print />}
-      <footer className="mt-4 flex justify-between border-t border-gray-300 pt-2 text-[10px] text-gray-500">
+      {result.rows.length === 0 ? <p className="py-8 text-center text-sm text-neutral-900">{t("rep.noData")}</p> : <ReportTable result={result} t={t} locale={locale} print />}
+      <footer className="mt-4 flex justify-between border-t border-neutral-300 pt-2 text-[10px] text-neutral-900">
         <span>{t("rep.printedBy", { name: me.fullName, at: formatDateTime(new Date(), locale) })}</span>
         <span>{t("rep.rows", { n: result.rows.length })}</span>
       </footer>
