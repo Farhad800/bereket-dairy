@@ -2,8 +2,9 @@
 
 Bereket Dairy Factory Management System — how it is hosted, configured, set up and updated.
 
-> **Status (28 Oct 2026): not deployed.** Nothing goes live until the owner explicitly says *"Yes, deploy now."*
-> The steps below are the plan for that moment; none of them has been run against the live services yet.
+> **Status: live since 28 Oct 2026** at https://bereket-dairy.vercel.app (Vercel project `bereket-dairy`, region fra1),
+> on the dairy Neon database and the private Blob store `bereket-dairy-files`. Deployed from `main` on the owner's go-ahead.
+> The project is not linked to Git: pushes do not deploy by themselves; a new production deployment is started by hand.
 
 ## 0. Keep it separate from Bereket Plastic
 
