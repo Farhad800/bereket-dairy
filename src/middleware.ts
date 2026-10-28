@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Cheap edge check only: no cookie → go to login. The real session validation
 // (expiry, disabled accounts, permissions) happens on the server for every request.
-const PUBLIC = ["/login", "/setup", "/offline", "/manifest.webmanifest", "/sw.js", "/api/health", "/api/admin/opening-import"]; // the import checks its own one-time token
+const PUBLIC = ["/login", "/setup", "/offline", "/manifest.webmanifest", "/sw.js", "/api/health"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

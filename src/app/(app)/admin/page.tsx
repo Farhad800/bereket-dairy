@@ -102,6 +102,7 @@ async function RolesTab() {
 }
 
 async function SystemTab() {
-  const [p, items] = await Promise.all([resetPreview(db), itemsPreview(db)]);
-  return <SystemAdmin ops={p.operations} master={p.master} demoUsers={p.demoUsers} items={items} />;
+  const [p, items, marker] = await Promise.all([resetPreview(db), itemsPreview(db), db.setting.findUnique({ where: { key: "import.openingStock" } })]);
+  const m = (marker?.value ?? null) as { at?: string; by?: string } | null;
+  return <SystemAdmin ops={p.operations} master={p.master} demoUsers={p.demoUsers} items={items} opening={{ done: !!marker, at: m?.at ? formatDateTime(m.at, await getLocale()) : undefined, by: m?.by }} />;
 }

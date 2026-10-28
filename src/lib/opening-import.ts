@@ -92,3 +92,40 @@ export async function importOpeningStock(p: Payload, dryRun: boolean) {
 class DryRun extends Error {
   constructor(public summary: { items: number; created: number; docs: { section: string; number: string; lines: number }[] }) { super("dry run"); }
 }
+
+/**
+ * The opening-stock CSV (UTF-8, header row). Columns by name, any order; extra columns are ignored:
+ * section (PRODUCT | RAW | PACKAGING), code, name, name2, unit (pcs | kg), pieces_per_carton, quantity, cost_iqd
+ */
+export function payloadFromCsv(rows: string[][], by: string, source: string): Payload {
+  if (rows.length < 2) throw new ImportRefused("The file has no rows.");
+  const head = rows[0].map((h) => h.trim().toLowerCase());
+  const col = (n: string) => head.indexOf(n);
+  for (const n of ["section", "code", "name", "unit", "quantity"]) if (col(n) < 0) throw new ImportRefused(`The file needs a "${n}" column.`);
+  const get = (r: string[], n: string) => (col(n) < 0 ? "" : (r[col(n)] ?? "").trim());
+  const num = (v: string, line: number, what: string) => {
+    if (v === "") return null;
+    const x = Number(v.replace(/,/g, ""));
+    if (!Number.isFinite(x)) throw new ImportRefused(`Row ${line}: ${what} "${v}" is not a number.`);
+    return x;
+  };
+  const items = rows.slice(1).map((r, i) => {
+    const line = i + 2;
+    const ppc = num(get(r, "pieces_per_carton"), line, "pieces per carton");
+    return {
+      section: get(r, "section").toUpperCase() as "PRODUCT" | "RAW" | "PACKAGING",
+      code: get(r, "code"), name: get(r, "name"), name2: get(r, "name2") || null,
+      unit: get(r, "unit").toLowerCase() as "pcs" | "kg",
+      piecesPerCarton: ppc === null ? null : ppc,
+      qty: num(get(r, "quantity"), line, "quantity") ?? 0,
+      costIqd: num(get(r, "cost_iqd"), line, "cost"),
+    };
+  });
+  const parsed = payloadSchema.safeParse({ by, source, items });
+  if (!parsed.success) {
+    const e = parsed.error.issues[0];
+    const row = typeof e.path[1] === "number" ? ` (row ${e.path[1] + 2}, ${String(e.path[2] ?? "")})` : "";
+    throw new ImportRefused(`The file has a mistake${row}: ${e.message}`);
+  }
+  return parsed.data;
+}

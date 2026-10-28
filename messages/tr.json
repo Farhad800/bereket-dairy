@@ -848,6 +848,21 @@
     "items": {
       "products": "Ürünler",
       "materials": "Hammadde ve malzemeler"
+    },
+    "openTitle": "Açılış stoğunu yükle (bir kez)",
+    "openIntro": "Fabrikanın malzeme listesini ve raftaki stoğu bir CSV dosyasından ekler: bitmiş ürünler, hammaddeler ve ambalaj; her biri için bir Giriş belgesi (neden: açılış stoğu). Yalnızca bir kez yapılabilir ve var olan kodları reddeder.",
+    "openFile": "CSV dosyası",
+    "openCheck": "Dosyayı kontrol et",
+    "openLoad": "Stoğu yükle",
+    "openHint": "Önce Dosyayı kontrol et: hiçbir şey kaydedilmez, ne oluşturulacağını görürsünüz. Sonra Stoğu yükle.",
+    "openChecked": "Dosya doğru: {n} kalem — {p} bitmiş ürün, {r} hammadde, {k} ambalaj. Kaydetmek için Stoğu yükle.",
+    "openDone": "{n} kalem açılış stoğuyla yüklendi.",
+    "openAlready": "Açılış stoğu zaten yüklendi ({at}, {by}).",
+    "openLines": "stoklu {n} kalem",
+    "openSec": {
+      "PRODUCT": "Bitmiş ürünler",
+      "RAW": "Hammaddeler",
+      "PACKAGING": "Ambalaj"
     }
   },
   "daily": {

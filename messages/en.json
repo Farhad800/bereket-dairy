@@ -848,6 +848,21 @@
     "items": {
       "products": "Products",
       "materials": "Ingredients & items"
+    },
+    "openTitle": "Load opening stock (once)",
+    "openIntro": "Adds the factory's item list and the stock on the shelf from a CSV file: finished products, raw materials and packaging, each with one Input document (reason: opening stock). It can be done only once and refuses codes that already exist.",
+    "openFile": "CSV file",
+    "openCheck": "Check file",
+    "openLoad": "Load stock",
+    "openHint": "First press Check file: nothing is saved, you see what will be created. Then Load stock.",
+    "openChecked": "File is correct: {n} items — {p} finished products, {r} raw materials, {k} packaging. Press Load stock to save.",
+    "openDone": "Loaded {n} items with their opening stock.",
+    "openAlready": "The opening stock was already loaded ({at}, {by}).",
+    "openLines": "{n} items with stock",
+    "openSec": {
+      "PRODUCT": "Finished products",
+      "RAW": "Raw materials",
+      "PACKAGING": "Packaging"
     }
   },
   "daily": {

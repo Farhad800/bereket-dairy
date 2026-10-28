@@ -7,6 +7,8 @@ import { requirePermission } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { run, UserError } from "@/lib/action";
 import { deleteFiles } from "@/lib/storage";
+import { parseCsv } from "@/lib/csv";
+import { ImportRefused, importOpeningStock, payloadFromCsv } from "@/lib/opening-import";
 import { itemsPreview, removeAllItems, removeDemoUsers, resetData, resetPreview, type ResetScope } from "@/lib/data-reset";
 
 /** Confirms the person at the keyboard is the signed-in administrator. */
@@ -55,5 +57,30 @@ export async function removeAllItemsAction(_: unknown, fd: FormData) {
     await audit({ userId: me.id, action: "system.remove_items", entityType: "System", before, after: { removed: r.removed } });
     revalidatePath("/", "layout");
     return { removed: r.removed };
+  });
+}
+
+/**
+ * Loads the item list and the opening stock from a CSV file (once). "check" only checks and shows
+ * what would be created — nothing is saved; "load" saves it. Needs settings:manage and the password.
+ */
+export async function importOpeningStockAction(_: unknown, fd: FormData) {
+  return run(async () => {
+    const me = await requirePermission("settings:manage");
+    await confirmPassword(me.id, String(fd.get("password") ?? ""));
+    const file = fd.get("file");
+    if (!(file instanceof File) || file.size === 0) throw new UserError("Choose the CSV file.");
+    if (file.size > 5_000_000) throw new UserError("The file is too large (more than 5 MB).");
+    const load = fd.get("mode") === "load";
+    try {
+      const payload = payloadFromCsv(parseCsv(await file.text()), me.username, file.name.slice(0, 100));
+      const r = await importOpeningStock(payload, !load);
+      if (load) revalidatePath("/", "layout");
+      const count = (s: string) => payload.items.filter((i) => i.section === s).length;
+      return { ...r, products: count("PRODUCT"), raw: count("RAW"), packaging: count("PACKAGING") };
+    } catch (e) {
+      if (e instanceof ImportRefused) throw new UserError(e.message);
+      throw e;
+    }
   });
 }

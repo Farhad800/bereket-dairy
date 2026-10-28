@@ -2,21 +2,24 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { AlertTriangle, PackageX, Trash2, UserMinus } from "lucide-react";
+import { AlertTriangle, FileUp, PackageX, Trash2, UserMinus } from "lucide-react";
 import { useFormAction } from "@/components/use-form-action";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
-import { removeAllItemsAction, removeDemoUsersAction, resetDataAction } from "@/app/actions/system";
+import { importOpeningStockAction, removeAllItemsAction, removeDemoUsersAction, resetDataAction } from "@/app/actions/system";
 
 type Counts = Record<string, number>;
 
 type Items = { products: number; materials: number; used: number };
+type ImportResult = { dryRun: boolean; items: number; products: number; raw: number; packaging: number; docs: { section: string; number: string; lines: number }[] };
 
-export default function SystemAdmin({ ops, master, demoUsers, items }: { ops: Counts; master: Counts; demoUsers: number; items: Items }) {
+export default function SystemAdmin({ ops, master, demoUsers, items, opening }: { ops: Counts; master: Counts; demoUsers: number; items: Items; opening: { done: boolean; at?: string; by?: string } }) {
   const t = useTranslations("sys");
   const [scope, setScope] = useState<"operations" | "everything">("operations");
   const reset = useFormAction(resetDataAction, { resetOnSuccess: true });
   const demo = useFormAction(removeDemoUsersAction, { resetOnSuccess: true });
   const wipe = useFormAction(removeAllItemsAction, { resetOnSuccess: true });
+  const imp = useFormAction(importOpeningStockAction);
+  const res = imp.state?.ok ? (imp.state.data as ImportResult) : null;
   const itemsTotal = items.products + items.materials;
   const opsTotal = Object.values(ops).reduce((a, b) => a + b, 0);
 
@@ -59,6 +62,36 @@ export default function SystemAdmin({ ops, master, demoUsers, items }: { ops: Co
             <Button type="submit" variant="danger" disabled={reset.pending || (opsTotal === 0 && scope === "operations")}>
               {reset.pending ? t("working") : scope === "everything" ? t("resetAllButton") : t("resetButton")}
             </Button>
+          </form>
+        )}
+      </Card>
+
+      <Card>
+        <h2 className="flex items-center gap-2 font-bold"><FileUp className="size-5" /> {t("openTitle")}</h2>
+        <p className="mt-1 text-sm text-muted">{t("openIntro")}</p>
+        {opening.done || (res && !res.dryRun) ? (
+          <div className="mt-4 space-y-2">
+            <Alert tone="green">{opening.done && !res ? t("openAlready", { at: opening.at ?? "", by: opening.by ?? "" }) : t("openDone", { n: (res?.items ?? 0).toLocaleString("en") })}</Alert>
+            {res && <ul className="text-sm">{res.docs.map((d) => <li key={d.number}>{d.number} · {t(`openSec.${d.section}`)} · {t("openLines", { n: d.lines })}</li>)}</ul>}
+          </div>
+        ) : (
+          <form onSubmit={imp.onSubmit} className="mt-4 space-y-3" encType="multipart/form-data">
+            {imp.error && <Alert>{imp.error}</Alert>}
+            {res?.dryRun && (
+              <Alert tone="blue">
+                {t("openChecked", { n: res.items.toLocaleString("en"), p: res.products, r: res.raw, k: res.packaging })}
+                <ul className="mt-1">{res.docs.map((d) => <li key={d.section}>{t(`openSec.${d.section}`)}: {t("openLines", { n: d.lines })}</li>)}</ul>
+              </Alert>
+            )}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={t("openFile")} name="open-file"><Input name="file" id="open-file" type="file" accept=".csv,text/csv" required /></Field>
+              <Field label={t("yourPassword")} name="open-password"><Input name="password" id="open-password" type="password" autoComplete="current-password" required /></Field>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" name="mode" value="check" variant="secondary" disabled={imp.pending}>{imp.pending ? t("working") : t("openCheck")}</Button>
+              <Button type="submit" name="mode" value="load" disabled={imp.pending || !res?.dryRun}>{t("openLoad")}</Button>
+            </div>
+            <p className="text-xs text-muted">{t("openHint")}</p>
           </form>
         )}
       </Card>
