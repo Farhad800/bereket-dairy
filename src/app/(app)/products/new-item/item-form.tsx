@@ -9,20 +9,21 @@ import { createItemAction } from "@/app/actions/items";
 import CostFields, { costPayload, emptyCost } from "../cost-fields";
 
 /** An ingredient or production item, typed by hand, with its unit (kg or pieces) and cost. */
-export default function ItemForm({ canCost }: { canCost: boolean }) {
+export default function ItemForm({ canCost, initialGroup = "RAW" }: { canCost: boolean; initialGroup?: "RAW" | "PACKAGING" }) {
   const t = useTranslations();
   const router = useRouter();
   const [name, setName] = useState("");
   const [name2, setName2] = useState("");
   const [code, setCode] = useState("");
-  const [unit, setUnit] = useState<"pcs" | "kg">("kg");
+  const [group, setGroup] = useState<"RAW" | "PACKAGING">(initialGroup);
+  const [unit, setUnit] = useState<"pcs" | "kg">(initialGroup === "PACKAGING" ? "pcs" : "kg");
   const [cost, setCost] = useState(emptyCost);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   const save = () => start(async () => {
     setError(null);
-    const r = await createItemAction({ name, name2: name2 || undefined, code: code || undefined, unit, cost: canCost ? costPayload(cost) : undefined });
+    const r = await createItemAction({ name, name2: name2 || undefined, code: code || undefined, unit, group, cost: canCost ? costPayload(cost) : undefined });
     if (!r.ok) { setError(r.fieldErrors ? Object.values(r.fieldErrors)[0] ?? r.error : r.error); return; }
     router.push(`/products/${r.data.id}?created=1`);
   });
@@ -31,6 +32,12 @@ export default function ItemForm({ canCost }: { canCost: boolean }) {
     <div className="max-w-3xl space-y-4">
       <Card>
         <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-sm font-medium sm:col-span-2">{t("item.group")}
+            <Select value={group} onChange={(e) => setGroup(e.target.value as "RAW" | "PACKAGING")} className="mt-1" aria-label={t("item.group")}>
+              <option value="RAW">{t("md.kindOne.RAW")}</option><option value="PACKAGING">{t("md.kindOne.PACKAGING")}</option>
+            </Select>
+            <span className="text-xs font-normal text-muted">{t("item.groupHint")}</span>
+          </label>
           <label className="text-sm font-medium">{t("item.name")} *<Input value={name} onChange={(e) => setName(e.target.value)} className="mt-1" aria-label={t("item.name")} maxLength={160} /></label>
           <label className="text-sm font-medium">{t("item.name2")}<Input value={name2} onChange={(e) => setName2(e.target.value)} className="mt-1" aria-label={t("item.name2")} maxLength={160} /></label>
           <label className="text-sm font-medium">{t("item.code")}<Input value={code} onChange={(e) => setCode(e.target.value)} className="mt-1" dir="ltr" aria-label={t("item.code")} placeholder="MAT-…" maxLength={40} />

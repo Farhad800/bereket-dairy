@@ -12,7 +12,7 @@ import { fmtMoney, fmtQty, type DocType } from "../types";
 import { docTotal, lineTotal, saleTotals, type Discount } from "@/lib/money";
 import SafeSelect, { fitSafe, type SafeOpt } from "../../cash/safe-select";
 
-type Item = { id: string; code: string; name: string; name2: string | null; unit: string; kind: string; stock: number };
+type Item = { id: string; code: string; name: string; name2: string | null; unit: string; kind: string; section: "PRODUCT" | "RAW" | "PACKAGING"; stock: number };
 type Order = { id: string; number: string; lines: { productId: string; quantity: number }[] };
 /** u: the unit the quantity is typed in — g is turned into kg before saving (stock is kept in kg, to 1 mg). */
 type Line = { key: number; itemId: string; qty: string; u: "kg" | "g" | "pcs"; price: string; discKind: "PERCENT" | "AMOUNT"; disc: string };
@@ -82,8 +82,8 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
   const priced = money || costIn;
 
   // Section of the warehouse to pick from (Finished products · Ingredients & production items); a chosen line keeps its item.
-  const [section, setSection] = useState<"ALL" | "PRODUCT" | "MATERIAL">("ALL");
-  const options = useMemo(() => items.map((i) => ({ value: i.id, label: i.name, kind: i.kind, hint: `${i.code} · ${t(`md.kind.${i.kind}`)}${i.name2 ? ` · ${i.name2}` : ""}` })), [items, t]);
+  const [section, setSection] = useState<"ALL" | "PRODUCT" | "RAW" | "PACKAGING">("ALL");
+  const options = useMemo(() => items.map((i) => ({ value: i.id, label: i.name, kind: i.section, hint: `${i.code} · ${t(i.kind === "PRODUCT" ? "md.kind.PRODUCT" : `md.kindOne.${i.section}`)}${i.name2 ? ` · ${i.name2}` : ""}` })), [items, t]);
   const optionsFor = (itemId: string) => options.filter((o) => section === "ALL" || o.kind === section || o.value === itemId);
   const set = (key: number, patch: Partial<Line>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   const sell = type === "SELL";
@@ -253,10 +253,10 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
       <Card className="p-0 sm:p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3" role="radiogroup" aria-label={t("item.section")}>
           <span className="text-sm font-medium">{t("item.section")}:</span>
-          {(["ALL", "PRODUCT", "MATERIAL"] as const).map((k) => (
+          {(["ALL", "PRODUCT", "RAW", "PACKAGING"] as const).map((k) => (
             <button key={k} type="button" role="radio" aria-checked={section === k} onClick={() => setSection(k)}
               className={cn("min-h-9 rounded-full border px-3 text-sm font-semibold", section === k ? "border-ink bg-ink text-surface" : "border-line bg-surface text-muted hover:text-ink")}>
-              {k === "ALL" ? t("item.allSections") : t(`md.kindPlural.${k}`)} <span className="text-xs opacity-75">{k === "ALL" ? items.length : items.filter((i) => i.kind === k).length}</span>
+              {k === "ALL" ? t("item.allSections") : t(`sec.${k}`)} <span className="text-xs opacity-75">{k === "ALL" ? items.length : items.filter((i) => i.section === k).length}</span>
             </button>
           ))}
         </div>

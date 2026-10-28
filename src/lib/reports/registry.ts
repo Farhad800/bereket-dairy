@@ -1,3 +1,4 @@
+import { isSectionFilter, sectionOf, sectionWhere } from "@/lib/sections";
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -268,7 +269,7 @@ export const REPORTS: ReportDef[] = [
     groups: ["item", "movement"],
     async run(q, ctx) {
       const name = await userNames();
-      const itemWhere: Prisma.ProductWhereInput = { ...(q.section ? { kind: q.section } : {}), ...(q.item ? { id: q.item } : {}) };
+      const itemWhere: Prisma.ProductWhereInput = { AND: [q.section ? sectionWhere(q.section) : {}, q.item ? { id: q.item } : {}] };
       const refWhere: Prisma.StockMovementWhereInput = q.ref ? { OR: [
         { reference: { contains: q.ref, mode: "insensitive" } },
         { doc: { OR: [{ number: { contains: q.ref, mode: "insensitive" } }, { reference: { contains: q.ref, mode: "insensitive" } }, { invoiceNo: { contains: q.ref, mode: "insensitive" } }, { supplierRef: { contains: q.ref, mode: "insensitive" } }] } },
@@ -280,13 +281,13 @@ export const REPORTS: ReportDef[] = [
         ...(q.employee ? { createdById: q.employee } : {}),
         ...refWhere,
       };
-      const SECTION_TONE = { PRODUCT: "blue", MATERIAL: "gray" } as const;
+      const SECTION_TONE = { PRODUCT: "blue", RAW: "gray", PACKAGING: "gray" } as const;
 
       if (q.group === "movement") {
         const list = await db.stockMovement.findMany({
           where: moveWhere, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: MAX_ROWS,
           include: {
-            product: { select: { id: true, code: true, name: true, unit: true, kind: true } },
+            product: { select: { id: true, code: true, name: true, unit: true, kind: true, materialGroup: true } },
             doc: { select: { id: true, number: true, reference: true, reason: true, party: true, invoiceNo: true, supplierRef: true, currency: true, rate: true } },
           },
         });
@@ -294,7 +295,7 @@ export const REPORTS: ReportDef[] = [
           const qty = Number(m.qty);
           const price = m.unitPrice === null ? null : Number(m.unitPrice);
           return {
-            at: m.createdAt, type: m.type, section: m.product.kind, item: `${m.product.code} · ${m.product.name}`,
+            at: m.createdAt, type: m.type, section: sectionOf(m.product), item: `${m.product.code} · ${m.product.name}`,
             in: qty > 0 ? r6(qty) : null, out: qty < 0 ? r6(-qty) : null, unit: unitOf(m.product.unit),
             reason: m.doc?.reason ? m.doc.reason : m.type === "USE" || m.type === "PRODUCTION" ? `=${m.reason ?? ""}` : "",
             party: m.doc?.party ?? "", ref: [m.doc?.number, m.doc?.reference, m.doc?.supplierRef].filter(Boolean).join(" · "),
@@ -308,7 +309,7 @@ export const REPORTS: ReportDef[] = [
           columns: [
             { key: "at", label: "rep.col.when", type: "datetime" },
             { key: "type", label: "rep.col.movement", type: "status", ns: "wh.mv", tones: MOVE_TONE },
-            { key: "section", label: "rep.col.section", type: "status", ns: "md.kindPlural", tones: SECTION_TONE, wide: true },
+            { key: "section", label: "rep.col.section", type: "status", ns: "sec", tones: SECTION_TONE, wide: true },
             { key: "item", label: "rep.col.item" },
             { key: "in", label: "rep.col.in", type: "qty" },
             { key: "out", label: "rep.col.out", type: "qty" },
@@ -333,7 +334,7 @@ export const REPORTS: ReportDef[] = [
       }
 
       // Per item: opening (before the period), in and out during it, closing (end of the period) — from the ledger.
-      const items = await db.product.findMany({ where: { ...itemWhere, OR: [{ archivedAt: null }, { stockMovements: { some: {} } }] }, orderBy: [{ kind: "asc" }, { code: "asc" }], select: { id: true, code: true, name: true, unit: true, kind: true } });
+      const items = await db.product.findMany({ where: { AND: [itemWhere, { OR: [{ archivedAt: null }, { stockMovements: { some: {} } }] }] }, orderBy: [{ kind: "asc" }, { materialGroup: "asc" }, { code: "asc" }], select: { id: true, code: true, name: true, unit: true, kind: true, materialGroup: true } });
       const ids = items.map((i) => i.id);
       const [before, untilEnd, inQ, outQ] = await Promise.all([
         db.stockMovement.groupBy({ by: ["productId"], where: { productId: { in: ids }, createdAt: { lt: q.start } }, _sum: { qty: true } }),
@@ -344,13 +345,13 @@ export const REPORTS: ReportDef[] = [
       const get = (l: { productId: string; _sum: { qty: unknown } }[], id: string) => r6(num(l.find((x) => x.productId === id)?._sum.qty));
       const filtered = !!(q.direction || q.employee || q.ref);
       const rows: Row[] = items.map((it) => ({
-        section: it.kind, item: `${it.code} · ${it.name}`, unit: unitOf(it.unit),
+        section: sectionOf(it), item: `${it.code} · ${it.name}`, unit: unitOf(it.unit),
         opening: get(before, it.id), in: get(inQ, it.id), out: r6(-get(outQ, it.id)), closing: get(untilEnd, it.id),
         _href: { item: `/products/${it.id}` },
       })).filter((r) => !filtered || num(r.in) !== 0 || num(r.out) !== 0);
       return {
         columns: [
-          { key: "section", label: "rep.col.section", type: "status", ns: "md.kindPlural", tones: SECTION_TONE, wide: true },
+          { key: "section", label: "rep.col.section", type: "status", ns: "sec", tones: SECTION_TONE, wide: true },
           { key: "item", label: "rep.col.item" },
           { key: "unit", label: "rep.col.unit" },
           { key: "opening", label: "rep.col.opening", type: "qty" },
@@ -509,7 +510,7 @@ export function parseQuery(def: ReportDef, sp: Record<string, string | string[] 
     end: factoryDay(parseFactoryDate(to)).end,
     product: pick("product", (v) => ID.test(v)),
     item: pick("item", (v) => ID.test(v)),
-    section: pick("section", (v) => v === "PRODUCT" || v === "MATERIAL") as ReportQuery["section"],
+    section: pick("section", isSectionFilter) as ReportQuery["section"],
     direction: pick("direction", (v) => v === "IN" || v === "OUT") as ReportQuery["direction"],
     employee: pick("employee", (v) => ID.test(v)),
     ref: (() => { const v = get("ref")?.trim(); return v && v.length <= 80 ? v : undefined; })(),

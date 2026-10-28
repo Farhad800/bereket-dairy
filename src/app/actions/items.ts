@@ -52,6 +52,8 @@ const itemSchema = z.object({
   name2: z.string().trim().max(160).optional(),
   code: z.string().trim().max(40).regex(/^[A-Za-z0-9._\-/]*$/, "Letters, numbers, - _ . / only").optional(),
   unit: z.enum(["pcs", "kg"]),
+  /** Raw material (default) or packaging: the two groups of section 2 of the warehouse. */
+  group: z.enum(["RAW", "PACKAGING"]).default("RAW"),
   cost: costSchema.optional(),
 });
 
@@ -65,8 +67,8 @@ export async function createItemAction(input: unknown) {
       if (await tx.product.findFirst({ where: { kind: "MATERIAL", archivedAt: null, name: { equals: v.name, mode: "insensitive" } } })) throw new UserError("An item with this name already exists.");
       const code = v.code ? v.code.toUpperCase() : await freeCode(tx);
       if (await tx.product.count({ where: { code } })) throw new UserError(`The code ${code} is already used.`);
-      const it = await tx.product.create({ data: { code, kind: "MATERIAL", name: v.name, name2: v.name2 || null, unit: v.unit, ...(cost ?? {}) } });
-      await audit({ userId: me.id, action: "product.create", entityType: "Product", entityId: it.id, after: { code, kind: "MATERIAL", name: v.name, unit: v.unit, cost: cost ? costText(cost, v.unit) : null } }, tx);
+      const it = await tx.product.create({ data: { code, kind: "MATERIAL", materialGroup: v.group, name: v.name, name2: v.name2 || null, unit: v.unit, ...(cost ?? {}) } });
+      await audit({ userId: me.id, action: "product.create", entityType: "Product", entityId: it.id, after: { code, kind: "MATERIAL", group: v.group, name: v.name, unit: v.unit, cost: cost ? costText(cost, v.unit) : null } }, tx);
       await notify({ type: "product.added", data: { name: it.name, code: it.code, by: me.fullName }, link: `/products/${it.id}`, toPermission: "products:view", exceptUserId: me.id }, tx);
       return it;
     });
@@ -108,7 +110,7 @@ export async function updateItemAction(input: unknown) {
     const v = editSchema.parse(input);
     const me = await costUser("products:edit");
     await db.$transaction(async (tx) => {
-      const before = await tx.product.findUnique({ where: { id: v.id }, select: { code: true, kind: true, name: true, name2: true, unit: true, _count: { select: { stockMovements: true, usedIn: true } } } });
+      const before = await tx.product.findUnique({ where: { id: v.id }, select: { code: true, kind: true, materialGroup: true, name: true, name2: true, unit: true, _count: { select: { stockMovements: true, usedIn: true } } } });
       if (!before) throw new UserError("That item no longer exists.");
       if (before.kind === "PRODUCT") throw new UserError("Edit products on the product page.");
       if (v.unit !== before.unit && before._count.stockMovements > 0) throw new UserError("This item already has stock in or out, so its unit can't change.");
@@ -116,9 +118,9 @@ export async function updateItemAction(input: unknown) {
       if (await tx.product.findFirst({ where: { id: { not: v.id }, kind: "MATERIAL", archivedAt: null, name: { equals: v.name, mode: "insensitive" } } })) throw new UserError("An item with this name already exists.");
       const code = v.code ? v.code.toUpperCase() : before.code;
       if (code !== before.code && (await tx.product.count({ where: { code } }))) throw new UserError(`The code ${code} is already used.`);
-      const data = { code, name: v.name, name2: v.name2 || null, unit: v.unit };
+      const data = { code, name: v.name, name2: v.name2 || null, unit: v.unit, materialGroup: v.group };
       await tx.product.update({ where: { id: v.id }, data });
-      const b = { code: before.code, name: before.name, name2: before.name2, unit: before.unit };
+      const b = { code: before.code, name: before.name, name2: before.name2, unit: before.unit, materialGroup: before.materialGroup ?? "RAW" };
       const a = { ...data };
       const changed = Object.fromEntries(Object.keys(a).filter((k) => (a as Record<string, unknown>)[k] !== (b as Record<string, unknown>)[k]).map((k) => [k, true]));
       if (Object.keys(changed).length) await audit({ userId: me.id, action: "product.update", entityType: "Product", entityId: v.id,

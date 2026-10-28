@@ -7,7 +7,7 @@ import { Pencil, Save, X } from "lucide-react";
 import { Alert, Button, Input, Select } from "@/components/ui";
 import { updateItemAction } from "@/app/actions/items";
 
-export type ItemDetailsValue = { name: string; name2: string; code: string; unit: "pcs" | "kg" };
+export type ItemDetailsValue = { name: string; name2: string; code: string; unit: "pcs" | "kg"; group: "RAW" | "PACKAGING" };
 
 /** Edit an ingredient / production item in the same boxes as when it was added. */
 export default function ItemDetails({ id, value, canEdit, unitLocked }: { id: string; value: ItemDetailsValue; canEdit: boolean; unitLocked: boolean }) {
@@ -20,7 +20,7 @@ export default function ItemDetails({ id, value, canEdit, unitLocked }: { id: st
   if (!canEdit) return null;
   const save = () => start(async () => {
     setError(null);
-    const r = await updateItemAction({ id, name: v.name, name2: v.name2 || undefined, code: v.code || undefined, unit: v.unit });
+    const r = await updateItemAction({ id, name: v.name, name2: v.name2 || undefined, code: v.code || undefined, unit: v.unit, group: v.group });
     if (!r.ok) { setError(r.fieldErrors ? Object.values(r.fieldErrors)[0] ?? r.error : r.error); return; }
     setEdit(false); router.refresh();
   });
@@ -28,6 +28,11 @@ export default function ItemDetails({ id, value, canEdit, unitLocked }: { id: st
   return (
     <div className="mt-4 space-y-3 border-t border-line pt-4" id="edit">
       <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-sm font-medium sm:col-span-2">{t("item.group")}
+          <Select value={v.group} onChange={(e) => setV({ ...v, group: e.target.value as "RAW" | "PACKAGING" })} className="mt-1" aria-label={t("item.group")}>
+            <option value="RAW">{t("md.kindOne.RAW")}</option><option value="PACKAGING">{t("md.kindOne.PACKAGING")}</option>
+          </Select>
+        </label>
         <label className="text-sm font-medium">{t("item.name")} *<Input value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} className="mt-1" aria-label={t("item.name")} maxLength={160} /></label>
         <label className="text-sm font-medium">{t("item.name2")}<Input value={v.name2} onChange={(e) => setV({ ...v, name2: e.target.value })} className="mt-1" aria-label={t("item.name2")} maxLength={160} /></label>
         <label className="text-sm font-medium">{t("item.code")}<Input value={v.code} onChange={(e) => setV({ ...v, code: e.target.value })} className="mt-1" dir="ltr" aria-label={t("item.code")} maxLength={40} /></label>

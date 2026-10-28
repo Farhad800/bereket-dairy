@@ -12,11 +12,13 @@ import { ArrowDownToLine, ArrowUpFromLine, BarChart3, PackagePlus } from "lucide
 import { Alert, Badge, Card, EmptyState, LinkButton, PageHeader, cn } from "@/components/ui";
 import ListToolbar from "@/components/list-toolbar";
 import StockTable from "./stock-table";
-import StockValue, { type Section, type SectionValue } from "./stock-value";
+import StockValue, { type SectionValue } from "./stock-value";
+import { SECTIONS, sectionOf, sectionWhere, type Section } from "@/lib/sections";
 
 export const metadata = { title: "Warehouse" };
-/** The warehouse has exactly two sections, plus the list of recent movements. */
-const TABS = ["products", "materials", "movements"] as const;
+/** Finished products, raw materials, packaging, plus the list of recent movements. */
+const TABS = ["products", "materials", "packaging", "movements"] as const;
+const TAB_SECTION: Record<string, Section> = { products: "PRODUCT", materials: "RAW", packaging: "PACKAGING" };
 const TYPES: StockMoveType[] = ["PRODUCTION", "USE", "INPUT", "OUTPUT", "BUY", "SELL"];
 /** Average cost per unit of what is in stock (Σ batch left × its cost ÷ stock); with no stock, the latest cost. */
 function unitCost(f: Awaited<ReturnType<typeof fifoState>>, id: string) {
@@ -42,7 +44,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
         {can(me, "stock:input") && <LinkButton href="/stock/new?type=INPUT"><ArrowDownToLine className="size-4" /> {t("wh.recordIn")}</LinkButton>}
         {can(me, "stock:output") && <LinkButton href="/stock/new?type=OUTPUT" variant="secondary"><ArrowUpFromLine className="size-4" /> {t("wh.recordOut")}</LinkButton>}
         {can(me, "reports:view") && <LinkButton href="/reports/warehouse-daily" variant="secondary"><BarChart3 className="size-4" /> {t("wh.dailyReport")}</LinkButton>}
-        {can(me, "products:create") && tab === "materials" && <LinkButton href="/products/new-item" variant="secondary"><PackagePlus className="size-4" /> {t("item.newButton")}</LinkButton>}
+        {can(me, "products:create") && (tab === "materials" || tab === "packaging") && <LinkButton href={`/products/new-item${tab === "packaging" ? "?group=PACKAGING" : ""}`} variant="secondary"><PackagePlus className="size-4" /> {t("item.newButton")}</LinkButton>}
       </>} />
       <div className="mb-4 flex gap-1 overflow-x-auto border-b border-line" role="tablist">
         {TABS.map((k) => (
@@ -53,27 +55,28 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
         ))}
       </div>
       {money && tab !== "movements" && <div className="mb-4">{await valuePanel()}</div>}
-      {tab === "movements" ? <MovementsTab /> : <SectionTab kind={tab === "materials" ? "MATERIAL" : "PRODUCT"} />}
+      {tab === "movements" ? <MovementsTab /> : <SectionTab section={TAB_SECTION[tab]} />}
     </>
   );
 
   /** Value of all stock in IQD per section (each batch still in stock × its own cost). Money roles only. */
   async function valuePanel() {
-    const [items, fifo] = await Promise.all([db.product.findMany({ where: { archivedAt: null }, select: { id: true, kind: true } }), fifoState()]);
-    const values = { PRODUCT: { value: 0, items: 0, noCost: 0 }, MATERIAL: { value: 0, items: 0, noCost: 0 } } as Record<Exclude<Section, "ALL">, SectionValue>;
+    const [items, fifo] = await Promise.all([db.product.findMany({ where: { archivedAt: null }, select: { id: true, kind: true, materialGroup: true } }), fifoState()]);
+    const values = Object.fromEntries(SECTIONS.map((k) => [k, { value: 0, items: 0, noCost: 0 }])) as Record<Section, SectionValue>;
     for (const it of items) {
       const b = fifo.value(it.id);
       if (!(b.qty > 0)) continue;
-      const v = values[it.kind as Exclude<Section, "ALL">];
+      const v = values[sectionOf(it)];
       v.items++;
       if (b.noCost > 0) v.noCost++;
       v.value += Math.max(0, b.value);
     }
-    return <StockValue key={tab} values={values} initial={tab === "materials" ? "MATERIAL" : "PRODUCT"} />;
+    return <StockValue key={tab} values={values} initial={TAB_SECTION[tab]} />;
   }
 
-  async function SectionTab({ kind }: { kind: "PRODUCT" | "MATERIAL" }) {
-    const items = await db.product.findMany({ where: { archivedAt: null, kind }, orderBy: kind === "PRODUCT" ? { code: "asc" } : { name: "asc" }, select: { id: true, code: true, name: true, name2: true, unit: true, piecesPerCarton: true } });
+  async function SectionTab({ section }: { section: Section }) {
+    const kind = section === "PRODUCT" ? "PRODUCT" : "MATERIAL";
+    const items = await db.product.findMany({ where: { archivedAt: null, ...sectionWhere(section) }, orderBy: kind === "PRODUCT" ? { code: "asc" } : { name: "asc" }, select: { id: true, code: true, name: true, name2: true, unit: true, piecesPerCarton: true } });
     const [stock, fifo] = await Promise.all([getStock(items.map((i) => i.id)), money ? fifoState() : null]);
     const rows = items.map((i) => {
       const c = fifo ? unitCost(fifo, i.id) : null;
@@ -93,7 +96,7 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
             : kg.length > 0 && <Card><p className="text-xs text-muted">{t("wh.totalKg")}</p><p className="mt-1 text-2xl font-bold tabular-nums" dir="ltr">{fmtAmount(kg.reduce((s, r) => s + r.stock, 0), "kg")}</p></Card>}
         </div>
         {money && <p className="text-xs text-muted">{t("cost.tableHint")}</p>}
-        {rows.length === 0 ? <EmptyState>{t(kind === "PRODUCT" ? "wh.noProducts" : "wh.noMaterials")}</EmptyState> : <StockTable key={kind} rows={rows} products={kind === "PRODUCT"} money={money} />}
+        {rows.length === 0 ? <EmptyState>{t(kind === "PRODUCT" ? "wh.noProducts" : section === "PACKAGING" ? "wh.noPackaging" : "wh.noMaterials")}</EmptyState> : <StockTable key={section} rows={rows} products={kind === "PRODUCT"} money={money} />}
       </div>
     );
   }

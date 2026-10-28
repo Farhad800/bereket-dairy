@@ -122,6 +122,9 @@ model Product {
   unit           String             @default("pcs")
   /// Products only (optional): how many pieces go into one carton. Null = not packed in cartons.
   piecesPerCarton Int?
+  /// Ingredients & production items only: RAW (milk, powder, cultures, flavours…) or PACKAGING (cups, lids, labels, cartons…).
+  /// Splits section 2 of the warehouse in two. Null for finished products.
+  materialGroup  MaterialGroup?
   /// Products only: how many pieces one batch of the recipe is expected to give (used for loss %).
   batchYield     Int?
   /// Cost of one unit (1 pc or 1 kg) as the accountant typed it: price + currency + rate to IQD (1 for IQD).
@@ -142,6 +145,7 @@ model Product {
 
   @@index([name])
   @@index([kind])
+  @@index([kind, materialGroup])
 }
 
 // ───────────────────────────── Orders (a sheet of products and amounts) ─────────────────────────────
@@ -285,6 +289,12 @@ model Customer {
 }
 
 /// The two warehouse sections.
+/// The two groups of ingredients & production items.
+enum MaterialGroup {
+  RAW // raw materials and additives
+  PACKAGING // cups, lids, labels, cartons, film, rolls…
+}
+
 enum ItemKind {
   PRODUCT // finished products (yoghurt cups, bowls…), counted in pieces
   MATERIAL // ingredients and production items (milk, cultures, sugar, cups, lids, labels, cartons…)

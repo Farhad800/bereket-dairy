@@ -213,7 +213,11 @@
       "PRODUCT": "Finished products",
       "MATERIAL": "Ingredients & production items"
     },
-    "noRecipeYet": "No recipe yet"
+    "noRecipeYet": "No recipe yet",
+    "kindOne": {
+      "RAW": "Raw material",
+      "PACKAGING": "Packaging item"
+    }
   },
   "status": {
     "order": {
@@ -471,8 +475,9 @@
     },
     "tab": {
       "movements": "Movements",
-      "materials": "Ingredients & production items",
-      "products": "Finished products"
+      "materials": "Raw materials",
+      "products": "Finished products",
+      "packaging": "Packaging"
     },
     "filterItems": "Filter by name or code…",
     "onlyInStock": "Only items in stock",
@@ -489,7 +494,8 @@
     "productsN": "Products",
     "outOfStock": "Out of stock",
     "noProducts": "No finished products yet. Add them on Products & Recipes.",
-    "cartonSplit": "{c} cartons + {p} pcs"
+    "cartonSplit": "{c} cartons + {p} pcs",
+    "noPackaging": "No packaging items yet. Add them with New ingredient / item."
   },
   "rep": {
     "intro": "Live figures from the factory's records. Pick a report, set the dates and filters, then export to Excel (CSV) or PDF.",
@@ -583,7 +589,7 @@
         "lastMonth": "Last month",
         "thisYear": "This year"
       },
-      "allSections": "Both sections",
+      "allSections": "All sections",
       "allItems": "All items",
       "direction": "In / out",
       "inAndOut": "In and out",
@@ -1414,11 +1420,13 @@
     "save": "Save item",
     "created": "{code} saved. It is now in the warehouse and can be used in recipes, buying and stock movements.",
     "section": "Section",
-    "allSections": "All",
+    "allSections": "All sections",
     "edit": "Edit item",
     "unitLocked": "Stock already moved in or out, so the unit can't change.",
     "unitHint": "Weights are kept in kg to 1 mg, and can be typed in kg or g everywhere. Pieces are always whole.",
-    "codeAuto": "Automatic if empty"
+    "codeAuto": "Automatic if empty",
+    "group": "Group",
+    "groupHint": "Raw materials: milk, powder, cultures, flavours… Packaging: cups, lids, labels, cartons, film…"
   },
   "cost": {
     "title": "Starting cost",
@@ -1499,5 +1507,11 @@
       "PRODUCTION": "Production",
       "SHORT": "Taken with no stock (should never happen)"
     }
+  },
+  "sec": {
+    "PRODUCT": "Finished products",
+    "RAW": "Raw materials",
+    "PACKAGING": "Packaging",
+    "MATERIAL": "Raw materials & packaging"
   }
 }

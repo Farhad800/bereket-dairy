@@ -1,3 +1,4 @@
+import { sectionOf } from "@/lib/sections";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -36,7 +37,7 @@ export default async function NewStockDocPage({ searchParams }: { searchParams: 
   }
   const type = allowed.includes(sp.type as DocType) ? (sp.type as DocType) : allowed[0];
   const [items, orders] = await Promise.all([
-    db.product.findMany({ where: { OR: [{ archivedAt: null }, ...(edit ? [{ id: { in: edit.lines.map((l) => l.itemId) } }] : [])] }, orderBy: [{ kind: "asc" }, { name: "asc" }], select: { id: true, code: true, name: true, name2: true, unit: true, kind: true } }),
+    db.product.findMany({ where: { OR: [{ archivedAt: null }, ...(edit ? [{ id: { in: edit.lines.map((l) => l.itemId) } }] : [])] }, orderBy: [{ kind: "asc" }, { name: "asc" }], select: { id: true, code: true, name: true, name2: true, unit: true, kind: true, materialGroup: true } }),
     db.order.findMany({ where: { status: "OPEN" }, orderBy: { createdAt: "desc" }, take: 200, select: { id: true, number: true, lines: { select: { productId: true, quantity: true } } } }),
   ]);
   const stock = await getStock();
@@ -57,7 +58,7 @@ export default async function NewStockDocPage({ searchParams }: { searchParams: 
         allowed={allowed}
         initialType={type}
         initialOrder={orders.some((o) => o.id === sp.order) ? sp.order! : ""}
-        items={items.map((i) => ({ ...i, stock: stock.get(i.id) ?? 0 }))}
+        items={items.map(({ materialGroup, ...i }) => ({ ...i, section: sectionOf({ kind: i.kind, materialGroup }), stock: stock.get(i.id) ?? 0 }))}
         orders={orders.map((o) => ({ id: o.id, number: o.number, lines: o.lines }))}
         customers={customers}
         initialCustomer={customers.some((c) => c.id === (sp.customer ?? sp.supplier)) ? (sp.customer ?? sp.supplier)! : ""}

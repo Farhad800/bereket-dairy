@@ -38,20 +38,21 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
   if (p.kind !== "PRODUCT") {
     const users = [...new Map(p.usedIn.map((u) => [u.product.id, u.product])).values()];
+    const pack = p.materialGroup === "PACKAGING";
     return (
       <>
-        <Link href="/inventory?tab=materials" className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline"><ArrowLeft className="size-4 rtl:rotate-180" /> {t("wh.tab.materials")}</Link>
+        <Link href={`/inventory?tab=${pack ? "packaging" : "materials"}`} className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-brand-600 hover:underline"><ArrowLeft className="size-4 rtl:rotate-180" /> {t(pack ? "wh.tab.packaging" : "wh.tab.materials")}</Link>
         <PageHeader title={p.name} subtitle={<span dir="ltr">{[p.name2, p.code].filter(Boolean).join(" · ")}</span>} />
         {created && <div className="mb-4"><Alert tone="green">{t("item.created", { code: p.code })}</Alert></div>}
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>
             <dl className="grid grid-cols-2 gap-3 text-sm">
-              <div><dt className="text-xs text-muted">{t("md.kindLabel")}</dt><dd><Badge>{t("md.kind.MATERIAL")}</Badge></dd></div>
+              <div><dt className="text-xs text-muted">{t("md.kindLabel")}</dt><dd><Badge>{t(pack ? "md.kindOne.PACKAGING" : "md.kindOne.RAW")}</Badge></dd></div>
               <div><dt className="text-xs text-muted">{t("order.inStock")}</dt><dd className="font-bold" dir="ltr" data-testid="item-stock">{fmtAmount(stockNow, p.unit, pcs)}</dd></div>
               <div><dt className="text-xs text-muted">{t("item.unit")}</dt><dd>{p.unit === "kg" ? t("item.unitKg") : t("item.unitPcs")}</dd></div>
             </dl>
             <ItemDetails id={p.id} canEdit={can(me, "products:edit")} unitLocked={(await db.stockMovement.count({ where: { productId: p.id } })) > 0 || p.usedIn.length > 0}
-              value={{ name: p.name, name2: p.name2 ?? "", code: p.code, unit: p.unit.toLowerCase() === "kg" ? "kg" : "pcs" }} />
+              value={{ name: p.name, name2: p.name2 ?? "", code: p.code, unit: p.unit.toLowerCase() === "kg" ? "kg" : "pcs", group: pack ? "PACKAGING" : "RAW" }} />
             {money && (
               <div className="mt-4 border-t border-line pt-4">
                 <ItemCost id={p.id} unit={p.unit.toLowerCase() === "kg" ? "kg" : "pcs"} canEdit={can(me, "products:edit")}

@@ -213,7 +213,11 @@
       "PRODUCT": "Bitmiş ürünler",
       "MATERIAL": "Hammaddeler ve üretim malzemeleri"
     },
-    "noRecipeYet": "Henüz reçete yok"
+    "noRecipeYet": "Henüz reçete yok",
+    "kindOne": {
+      "RAW": "Hammadde",
+      "PACKAGING": "Ambalaj malzemesi"
+    }
   },
   "status": {
     "order": {
@@ -471,8 +475,9 @@
     },
     "tab": {
       "movements": "Hareketler",
-      "materials": "Hammaddeler ve üretim malzemeleri",
-      "products": "Bitmiş ürünler"
+      "materials": "Hammaddeler",
+      "products": "Bitmiş ürünler",
+      "packaging": "Ambalaj"
     },
     "filterItems": "Ada veya koda göre süz…",
     "onlyInStock": "Yalnızca stokta olanlar",
@@ -489,7 +494,8 @@
     "productsN": "Ürünler",
     "outOfStock": "Stokta yok",
     "noProducts": "Henüz bitmiş ürün yok. Ürünler ve Reçeteler'den ekleyin.",
-    "cartonSplit": "{c} koli + {p} adet"
+    "cartonSplit": "{c} koli + {p} adet",
+    "noPackaging": "Henüz ambalaj malzemesi yok. Yeni malzeme ile ekleyin."
   },
   "rep": {
     "intro": "Fabrika kayıtlarından canlı rakamlar. Bir rapor seçin, tarihleri ve filtreleri ayarlayın, sonra Excel (CSV) veya PDF olarak dışa aktarın.",
@@ -583,7 +589,7 @@
         "lastMonth": "Geçen ay",
         "thisYear": "Bu yıl"
       },
-      "allSections": "Her iki bölüm",
+      "allSections": "Tüm bölümler",
       "allItems": "Tüm malzemeler",
       "direction": "Giriş / çıkış",
       "inAndOut": "Giriş ve çıkış",
@@ -1414,11 +1420,13 @@
     "save": "Kalemi kaydet",
     "created": "{code} kaydedildi. Artık depoda ve reçetelerde, alımlarda ve stok hareketlerinde kullanılabilir.",
     "section": "Bölüm",
-    "allSections": "Tümü",
+    "allSections": "Tüm bölümler",
     "edit": "Malzemeyi düzenle",
     "unitLocked": "Stok zaten hareket etti, birim değiştirilemez.",
     "unitHint": "Ağırlıklar 1 mg hassasiyetle kg olarak tutulur ve her yerde kg veya g olarak yazılabilir. Adetler her zaman tam sayıdır.",
-    "codeAuto": "Boş bırakılırsa otomatik"
+    "codeAuto": "Boş bırakılırsa otomatik",
+    "group": "Grup",
+    "groupHint": "Hammaddeler: süt, toz, maya, aromalar… Ambalaj: kaplar, kapaklar, etiketler, koliler, film…"
   },
   "cost": {
     "title": "Başlangıç maliyeti",
@@ -1499,5 +1507,11 @@
       "PRODUCTION": "Üretim",
       "SHORT": "Stoksuz alındı (olmamalı)"
     }
+  },
+  "sec": {
+    "PRODUCT": "Bitmiş ürünler",
+    "RAW": "Hammaddeler",
+    "PACKAGING": "Ambalaj",
+    "MATERIAL": "Hammadde ve ambalaj"
   }
 }

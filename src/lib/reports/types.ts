@@ -56,7 +56,7 @@ export type ReportQuery = {
   product?: string;
   /** Any stock item (product or ingredient / production item). */
   item?: string;
-  section?: "PRODUCT" | "MATERIAL";
+  section?: "PRODUCT" | "RAW" | "PACKAGING" | "MATERIAL";
   direction?: "IN" | "OUT";
   employee?: string;
   /** Reference / document number typed by the user (text search). */
