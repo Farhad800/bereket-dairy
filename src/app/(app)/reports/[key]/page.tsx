@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowLeft, FileSpreadsheet, Printer } from "lucide-react";
-import { can, pageUser } from "@/lib/auth";
+import { can, pageUser, canSeeMoney } from "@/lib/auth";
 import { toFactoryDateInput } from "@/lib/time";
 import { REPORT_BY_KEY, parseQuery, queryParams, reportAllowed } from "@/lib/reports/registry";
 import { describeFilters, filterSelects } from "@/lib/reports/context";
@@ -27,7 +27,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
   const t = (await getTranslations()) as unknown as T;
   const locale = await getLocale();
   const q = parseQuery(def, await searchParams);
-  const [result, selects] = await Promise.all([def.run(q), filterSelects(def, q, t)]);
+  const [result, selects] = await Promise.all([def.run(q, { money: canSeeMoney(me) }), filterSelects(def, q, t)]);
   const qs = queryParams(def, q).toString();
   const summary = describeFilters(def, q, selects, t, locale);
   const exportable = can(me, "reports:export");

@@ -4,16 +4,12 @@
 export const RESOURCES = [
   "orders",
   "production",
-  "maintenance",
-  "service",
-  "qc",
   "warehouse",
   "stock", // stock movement documents: input, output, buy, sell
   "receipts", // printed receipts: saved layouts
   "customers", // customer accounts: balances, sales, payments
   "cash", // the safes: money in, money out (expenses), currency exchange, transfers between safes, expense categories
   "products",
-  "assets", // machines & molds
   "reports",
   "users",
   "roles",
@@ -31,16 +27,12 @@ export type Permission = `${Resource}:${Action}`;
 export const RESOURCE_ACTIONS: Record<Resource, Action[]> = {
   orders: ["view", "create", "edit", "approve", "export", "archive"],
   production: ["view", "create", "edit", "export"],
-  maintenance: ["view", "create", "edit", "approve", "export"],
-  service: ["view", "create", "edit", "export"],
-  qc: ["view", "create", "edit", "approve", "export"],
-  warehouse: ["view", "create", "edit", "approve", "export"],
+  warehouse: ["view", "export"],
   stock: ["view", "input", "output", "buy", "sell"],
   cash: ["view", "in", "out", "exchange", "transfer", "manage", "export"],
   receipts: ["manage"],
   customers: ["view", "manage"],
   products: ["view", "create", "edit", "archive", "export"],
-  assets: ["view", "create", "edit", "archive", "export"],
   reports: ["view", "export"],
   users: ["view", "manage"],
   roles: ["view", "manage"],
@@ -56,13 +48,9 @@ export const ALL_PERMISSIONS: Permission[] = RESOURCES.flatMap((r) =>
 export const BUSINESS_VIEW: Permission[] = [
   "orders:view",
   "production:view",
-  "maintenance:view",
-  "service:view",
-  "qc:view",
   "warehouse:view",
   "stock:view",
   "products:view",
-  "assets:view",
   "reports:view",
   "users:view",
 ];
@@ -76,49 +64,43 @@ export const DEFAULT_ROLES: { name: string; description: string; permissions: Pe
     permissions: ALL_PERMISSIONS,
   },
   {
+    name: "Accountant",
+    description: "Purchases, sales, customers, safes, costs and stock value. Sees all money.",
+    permissions: p(
+      ...BUSINESS_VIEW,
+      "stock:input", "stock:output", "stock:buy", "stock:sell",
+      "customers:view", "customers:manage",
+      "cash:view", "cash:in", "cash:out", "cash:exchange", "cash:transfer", "cash:manage", "cash:export",
+      "receipts:manage",
+      "products:create", "products:edit", "products:export",
+      "warehouse:export", "production:export", "orders:export",
+      "reports:export",
+      "audit:view",
+    ),
+  },
+  {
     name: "Sales Manager",
     description: "Gives production the order sheets: products and amounts.",
     permissions: p(
       ...BUSINESS_VIEW,
       "orders:create", "orders:edit", "orders:approve", "orders:export", "orders:archive",
-      "products:create", "products:edit",
       "reports:export",
     ),
   },
   {
     name: "Production Team",
-    description: "Enters each day's production (product, quantity, shift) and reports machine problems.",
+    description: "Enters each production run: product, batches made and pieces produced.",
     permissions: p(
       ...BUSINESS_VIEW,
       "production:create", "production:edit",
-      "maintenance:create",
-    ),
-  },
-  {
-    name: "Technical Service Team",
-    description: "Records mold changes, repairs and maintenance work.",
-    permissions: p(
-      ...BUSINESS_VIEW,
-      "service:create", "service:edit",
-      "maintenance:create", "maintenance:edit",
-      "assets:edit",
-    ),
-  },
-  {
-    name: "Quality Control Team",
-    description: "Inspects daily production, rejects defective pieces and tracks quality issues.",
-    permissions: p(
-      ...BUSINESS_VIEW,
-      "qc:create", "qc:edit", "qc:approve", "qc:export",
-      "maintenance:create", "maintenance:approve",
     ),
   },
   {
     name: "Warehouse Team",
-    description: "Keeps product stock: records goods going out and count corrections.",
+    description: "Records items coming in and going out. Sees quantities only — never prices or money.",
     permissions: p(
       ...BUSINESS_VIEW,
-      "warehouse:create", "warehouse:edit", "warehouse:export",
+      "warehouse:export",
       "stock:input", "stock:output",
     ),
   },

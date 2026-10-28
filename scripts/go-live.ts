@@ -3,7 +3,7 @@
  *
  *   npx tsx scripts/go-live.ts preview
  *   npx tsx scripts/go-live.ts reset-operations --yes     # test orders → shipments
- *   npx tsx scripts/go-live.ts reset-everything --yes     # also customers/products/machines/molds
+ *   npx tsx scripts/go-live.ts reset-everything --yes     # also customers and products/items
  *   npx tsx scripts/go-live.ts remove-demo-users --yes
  *
  * Uses DATABASE_URL. Take a backup first (docs/BACKUP-RESTORE.md).

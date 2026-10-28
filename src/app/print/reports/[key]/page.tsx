@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { pageUser } from "@/lib/auth";
+import { pageUser, canSeeMoney } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { formatDateTime } from "@/lib/time";
 import { REPORT_BY_KEY, parseQuery, queryParams, reportAllowed } from "@/lib/reports/registry";
@@ -20,7 +20,7 @@ export default async function PrintReport({ params, searchParams }: { params: Pr
   const t = (await getTranslations()) as unknown as T;
   const locale = await getLocale();
   const q = parseQuery(def, await searchParams);
-  const [result, selects] = await Promise.all([def.run(q), filterSelects(def, q, t)]);
+  const [result, selects] = await Promise.all([def.run(q, { money: canSeeMoney(me) }), filterSelects(def, q, t)]);
   const summary = describeFilters(def, q, selects, t, locale);
   const landscape = result.columns.length > 7;
   await audit({ userId: me.id, action: "report.export", entityType: "Report", entityId: key, after: { format: "pdf", ...Object.fromEntries(queryParams(def, q)), rows: result.rows.length } });

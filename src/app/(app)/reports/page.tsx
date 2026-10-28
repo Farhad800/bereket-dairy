@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import {
-  ArrowDownUp, ArrowLeftRight, Boxes, Bug, ChevronRight, ClipboardCheck, ClipboardPen, Factory, ListChecks,
-  ShieldCheck, Target, Vault, Wrench, type LucideIcon,
+  ArrowDownUp, ArrowLeftRight, ChevronRight, ClipboardCheck, Factory, FlaskConical, ListChecks, Target, Vault, type LucideIcon,
 } from "lucide-react";
 import { can, pageUser } from "@/lib/auth";
 import { REPORTS, SECTIONS, reportAllowed } from "@/lib/reports/registry";
@@ -11,7 +10,7 @@ import { Alert, PageHeader } from "@/components/ui";
 export const metadata = { title: "Reports & Analytics" };
 
 const ICONS: Record<string, LucideIcon> = {
-  Factory, Target, ClipboardCheck, ListChecks, Wrench, ArrowLeftRight, ShieldCheck, Bug, ClipboardPen, Boxes, ArrowDownUp, Vault,
+  Factory, Target, ClipboardCheck, ListChecks, ArrowLeftRight, ArrowDownUp, Vault, FlaskConical,
 };
 
 export default async function ReportsPage() {
@@ -31,8 +30,8 @@ export default async function ReportsPage() {
                 const Icon = ICONS[r.icon] ?? Factory;
                 return (
                   <li key={r.key}>
-                    <Link href={`/reports/${r.key}`} className="group flex h-full items-start gap-3 rounded-2xl border border-line bg-surface p-4 hover:border-brand-300 hover:bg-surface-2">
-                      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900 dark:text-brand-200">
+                    <Link href={`/reports/${r.key}`} className="group flex h-full items-start gap-3 rounded-2xl border border-line bg-surface p-4 hover:border-ink hover:bg-surface-2">
+                      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface-2 text-ink">
                         <Icon className="size-5" />
                       </span>
                       <span className="min-w-0 flex-1">

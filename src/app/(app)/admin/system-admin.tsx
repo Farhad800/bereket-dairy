@@ -3,14 +3,13 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { AlertTriangle, PackageX, Trash2, UserMinus } from "lucide-react";
-import Link from "next/link";
 import { useFormAction } from "@/components/use-form-action";
 import { Alert, Button, Card, Field, Input } from "@/components/ui";
 import { removeAllItemsAction, removeDemoUsersAction, resetDataAction } from "@/app/actions/system";
 
 type Counts = Record<string, number>;
 
-type Items = { products: number; stickers: number; materials: number; used: number };
+type Items = { products: number; materials: number; used: number };
 
 export default function SystemAdmin({ ops, master, demoUsers, items }: { ops: Counts; master: Counts; demoUsers: number; items: Items }) {
   const t = useTranslations("sys");
@@ -18,13 +17,13 @@ export default function SystemAdmin({ ops, master, demoUsers, items }: { ops: Co
   const reset = useFormAction(resetDataAction, { resetOnSuccess: true });
   const demo = useFormAction(removeDemoUsersAction, { resetOnSuccess: true });
   const wipe = useFormAction(removeAllItemsAction, { resetOnSuccess: true });
-  const itemsTotal = items.products + items.stickers + items.materials;
+  const itemsTotal = items.products + items.materials;
   const opsTotal = Object.values(ops).reduce((a, b) => a + b, 0);
 
   return (
     <div className="space-y-4">
       <Card>
-        <h2 className="flex items-center gap-2 font-bold"><Trash2 className="size-5 text-red-600" /> {t("resetTitle")}</h2>
+        <h2 className="flex items-center gap-2 font-bold"><Trash2 className="size-5" /> {t("resetTitle")}</h2>
         <p className="mt-1 text-sm text-muted">{t("resetIntro")}</p>
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
           {Object.entries(ops).map(([k, v]) => (
@@ -48,7 +47,7 @@ export default function SystemAdmin({ ops, master, demoUsers, items }: { ops: Co
                 <input type="radio" name="scope" value="everything" checked={scope === "everything"} onChange={() => setScope("everything")} className="mt-1" />
                 <span>
                   <b>{t("scopeAll")}</b><br />
-                  <span className="text-muted">{t("scopeAllHint", { products: master.products, machines: master.machines, molds: master.molds })}</span>
+                  <span className="text-muted">{t("scopeAllHint", { products: master.products })}</span>
                 </span>
               </label>
             </fieldset>
@@ -65,15 +64,15 @@ export default function SystemAdmin({ ops, master, demoUsers, items }: { ops: Co
       </Card>
 
       <Card>
-        <h2 className="flex items-center gap-2 font-bold"><PackageX className="size-5 text-red-600" /> {t("itemsTitle")}</h2>
+        <h2 className="flex items-center gap-2 font-bold"><PackageX className="size-5" /> {t("itemsTitle")}</h2>
         <p className="mt-1 text-sm text-muted">{t("itemsIntro")}</p>
-        <dl className="mt-3 grid grid-cols-3 gap-x-4 text-sm sm:max-w-md">
-          {(["products", "stickers", "materials"] as const).map((k) => (
+        <dl className="mt-3 grid grid-cols-2 gap-x-4 text-sm sm:max-w-md">
+          {(["products", "materials"] as const).map((k) => (
             <div key={k} className="flex justify-between gap-2 border-b border-line py-1"><dt className="text-muted">{t(`items.${k}`)}</dt><dd className="font-semibold tabular-nums">{items[k].toLocaleString("en")}</dd></div>
           ))}
         </dl>
         {wipe.state?.ok ? (
-          <div className="mt-4"><Alert tone="green">{t("itemsDone", { n: (wipe.state.data as { removed: number }).removed.toLocaleString("en") })} <Link href="/import" className="font-semibold underline">{t("itemsImportNow")}</Link></Alert></div>
+          <div className="mt-4"><Alert tone="green">{t("itemsDone", { n: (wipe.state.data as { removed: number }).removed.toLocaleString("en") })}</Alert></div>
         ) : items.used > 0 ? (
           <div className="mt-4"><Alert tone="amber">{t("itemsUsed", { n: items.used.toLocaleString("en") })}</Alert></div>
         ) : itemsTotal > 0 ? (

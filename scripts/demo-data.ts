@@ -1,12 +1,13 @@
 /**
- * Demonstration data — clearly tagged so it can be removed before going live.
- *   npm run demo:add      → creates demo employees (one per role) and demo records
+ * Demonstration data — SYNTHETIC, clearly tagged so it can be removed before going live.
+ *   npm run demo:add      → creates demo employees (one per role) and demo items / one demo product
  *   npm run demo:remove   → deletes everything tagged DEMO
  *
  * Every demo record uses the "DEMO" marker (usernames start with "demo.", codes with "DEMO-").
+ * No stock is created: stock only comes in through documents (Buy / Input), like real stock.
  * Refuses to run against production unless ALLOW_DEMO=1 is set.
  */
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type ComponentBasis } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const db = new PrismaClient();
@@ -15,9 +16,8 @@ const DEMO_PASSWORD = "Demo12345!"; // demo accounts only; removed with demo:rem
 const DEMO_USERS = [
   ["D-101", "Sara Sales (demo)", "demo.sales", "Sales Manager", "SALES"],
   ["D-102", "Peter Production (demo)", "demo.production", "Production Team", "PROD"],
-  ["D-103", "Tariq Technician (demo)", "demo.service", "Technical Service Team", "SERVICE"],
-  ["D-104", "Qamar Quality (demo)", "demo.qc", "Quality Control Team", "QC"],
   ["D-105", "Walid Warehouse (demo)", "demo.warehouse", "Warehouse Team", "WH"],
+  ["D-106", "Amina Accountant (demo)", "demo.accountant", "Accountant", "ACC"],
 ] as const;
 
 async function add() {
@@ -34,23 +34,31 @@ async function add() {
   console.log(`Demo employees ready (password for all: ${DEMO_PASSWORD}):`);
   DEMO_USERS.forEach((u) => console.log(`  ${u[2].padEnd(18)} ${u[3]}`));
 
-  // Demo master data so orders can be tried straight away. All codes start with DEMO-.
-  const products = [
-    ["DEMO-PF500", "500 ml PET preform (demo)", 12, true],
-    ["DEMO-CAP28", "28 mm bottle cap (demo)", 6, false],
-    ["DEMO-JAR1L", "1 L food jar (demo)", 18, true],
+  // Synthetic ingredients and production items (codes start with DEMO-). Not the factory's real list.
+  const items = [
+    ["DEMO-MILK", "Milk (demo)", "kg", 650],
+    ["DEMO-SUGAR", "Sugar (demo)", "kg", 1200],
+    ["DEMO-CULTURE", "Yoghurt culture (demo)", "kg", 900000],
+    ["DEMO-CUP500", "500 g cup (demo)", "pcs", 45],
+    ["DEMO-LID", "Cup lid (demo)", "pcs", 15],
+    ["DEMO-CARTON", "Carton for 12 cups (demo)", "pcs", 300],
   ] as const;
-  for (const [code, name, cycle, qc] of products) {
-    await db.product.upsert({ where: { code }, update: {}, create: { code, name, cycleTimeSec: cycle, qcRequired: qc, material: "PET / PP" } });
+  for (const [code, name, unit, cost] of items) {
+    await db.product.upsert({ where: { code }, update: {}, create: { code, name, unit, kind: "MATERIAL", costPrice: cost, costCurrency: "IQD", costRate: 1, costIqd: cost, costUpdatedAt: new Date() } });
   }
-  for (const [code, model, tonnage] of [["DEMO-M01", "Si-180", 180], ["DEMO-M02", "Si-250", 250], ["DEMO-M03", "Si-350", 350]] as const) {
-    await db.machine.upsert({ where: { code }, update: {}, create: { code, name: `Toyo ${model} (demo)`, manufacturer: "Toyo", model, tonnage } });
+  const p = await db.product.upsert({
+    where: { code: "DEMO-YOG500" }, update: {},
+    create: { code: "DEMO-YOG500", name: "Yoghurt 500 g (demo)", kind: "PRODUCT", unit: "pcs", batchYield: 950, piecesPerCarton: 12 },
+  });
+  if (!(await db.productComponent.count({ where: { productId: p.id } }))) {
+    const id = async (code: string) => (await db.product.findUniqueOrThrow({ where: { code } })).id;
+    const lines: [string, number, ComponentBasis][] = [
+      ["DEMO-MILK", 500, "BATCH"], ["DEMO-SUGAR", 20, "BATCH"], ["DEMO-CULTURE", 0.0004, "BATCH"],
+      ["DEMO-CUP500", 1, "PIECE"], ["DEMO-LID", 1, "PIECE"], ["DEMO-CARTON", 1, "CARTON"],
+    ];
+    for (const [code, qty, per] of lines) await db.productComponent.create({ data: { productId: p.id, componentId: await id(code), qty, per } });
   }
-  for (const [code, product, cav] of [["DEMO-MD-PF500", "DEMO-PF500", 32], ["DEMO-MD-CAP28", "DEMO-CAP28", 48], ["DEMO-MD-JAR1L", "DEMO-JAR1L", 4]] as const) {
-    const m = await db.mold.upsert({ where: { code }, update: {}, create: { code, name: `${product} mold (demo)`, cavities: cav } });
-    await db.product.update({ where: { code: product }, data: { moldId: m.id } });
-  }
-  console.log("Demo products, machines and molds ready (codes start with DEMO-).");
+  console.log("Demo items and one demo product ready (codes start with DEMO-). No stock: add it with a Buy or Input document.");
 }
 
 async function remove() {
@@ -63,18 +71,13 @@ async function remove() {
     db.user.deleteMany({ where: { id: { in: ids } } }),
   ]);
   console.log(`Removed ${ids.length} demo employees.`);
-  // Demo master data — only if nothing real refers to it any more.
-  const tryDelete = async (label: string, fn: () => Promise<{ count: number }>) => {
-    try {
-      const r = await fn();
-      if (r.count) console.log(`Removed ${r.count} demo ${label}.`);
-    } catch {
-      console.log(`Kept demo ${label}: orders or history still use them. Clear test data first (Administration → System).`);
-    }
-  };
-  await tryDelete("molds", () => db.mold.deleteMany({ where: { code: { startsWith: "DEMO-" } } }));
-  await tryDelete("machines", () => db.machine.deleteMany({ where: { code: { startsWith: "DEMO-" } } }));
-  await tryDelete("products", () => db.product.deleteMany({ where: { code: { startsWith: "DEMO-" } } }));
+  try {
+    await db.productComponent.deleteMany({ where: { product: { code: { startsWith: "DEMO-" } } } });
+    const r = await db.product.deleteMany({ where: { code: { startsWith: "DEMO-" } } });
+    if (r.count) console.log(`Removed ${r.count} demo items.`);
+  } catch {
+    console.log("Kept demo items: orders, production or stock still use them. Clear test data first (Administration → System).");
+  }
 }
 
 const cmd = process.argv[2];

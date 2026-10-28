@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
-  AlertOctagon, Boxes, CalendarDays, ClipboardList, Factory, PackageMinus, Package, ShieldAlert, ShieldX, SearchCheck, Wrench, ShieldQuestion, Vault, type LucideIcon,
+  AlertOctagon, Boxes, CalendarDays, ClipboardList, Factory, FlaskConical, PackageMinus, Package, Percent, Vault, type LucideIcon,
 } from "lucide-react";
 import { can, pageUser } from "@/lib/auth";
 import { balances } from "@/lib/cash";
@@ -20,20 +20,15 @@ const GROUPS: { title: string; cards: CardDef[] }[] = [
   ]},
   { title: "nav.production", cards: [
     { key: "producedToday", href: "/production", icon: Factory },
+    { key: "batchesToday", href: "/production", icon: FlaskConical },
     { key: "productsToday", href: "/production", icon: CalendarDays },
     { key: "producedWeek", href: "/reports/production", icon: Factory },
-    { key: "machinesDown", href: "/assets?status=down", icon: AlertOctagon, alert: true },
-    { key: "openMaintenance", href: "/service", icon: Wrench },
-  ]},
-  { title: "nav.qc", cards: [
-    { key: "notInspected", href: "/qc", icon: SearchCheck },
-    { key: "rejectedWeek", href: "/reports/quality", icon: ShieldX, alert: true },
-    { key: "openIssues", href: "/qc?tab=issues", icon: ShieldQuestion },
-    { key: "criticalIssues", href: "/qc?tab=issues&severity=CRITICAL", icon: ShieldAlert, alert: true },
+    { key: "lossWeekPct", href: "/reports/production", icon: Percent },
   ]},
   { title: "nav.inventory", cards: [
     { key: "stock", href: "/inventory", icon: Boxes },
     { key: "outWeek", href: "/inventory?tab=movements", icon: PackageMinus },
+    { key: "outOfStock", href: "/inventory?tab=materials", icon: AlertOctagon, alert: true },
   ]},
 ];
 
@@ -63,12 +58,12 @@ export default async function DashboardPage() {
                     key={c.key}
                     href={c.href}
                     className={cn(
-                      "group rounded-2xl border bg-surface p-4 transition hover:border-brand-300 hover:shadow-sm",
-                      warn ? "border-red-300 dark:border-red-900" : "border-line",
+                      "group rounded-2xl border bg-surface p-4 transition hover:border-ink hover:shadow-sm",
+                      warn ? "border-2 border-ink" : "border-line",
                     )}
                   >
-                    <c.icon className={cn("size-5", warn ? "text-red-600" : "text-brand-500")} aria-hidden />
-                    <p className={cn("mt-3 text-2xl font-bold tabular-nums", warn && "text-red-600")}>{formatNumber(value, locale)}</p>
+                    <c.icon className="size-5 text-ink" aria-hidden />
+                    <p className={cn("mt-3 text-2xl font-bold tabular-nums", warn && "underline decoration-2 underline-offset-4")}>{formatNumber(value, locale)}{c.key === "lossWeekPct" ? "%" : ""}</p>
                     <p className="mt-0.5 text-xs leading-snug text-muted">{t(`dashboard.${c.key}`)}</p>
                   </Link>
                 );
@@ -82,8 +77,8 @@ export default async function DashboardPage() {
             <h2 className="mb-2 text-sm font-semibold text-muted">{t("nav.cash")}</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               {(["IQD", "USD", "EUR"] as const).map((c) => (
-                <Link key={c} href="/cash" className="rounded-2xl border border-line bg-surface p-4 transition hover:border-brand-300 hover:shadow-sm">
-                  <Vault className="size-5 text-brand-500" aria-hidden />
+                <Link key={c} href="/cash" className="rounded-2xl border border-line bg-surface p-4 transition hover:border-ink hover:shadow-sm">
+                  <Vault className="size-5 text-ink" aria-hidden />
                   <p className="mt-3 text-2xl font-bold tabular-nums" dir="ltr">{safe[c].toLocaleString("en", { maximumFractionDigits: 2 })}</p>
                   <p className="mt-0.5 text-xs text-muted">{t(`cash.cur.${c}`)}</p>
                 </Link>

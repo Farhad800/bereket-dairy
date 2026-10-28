@@ -17,7 +17,7 @@ export default async function Batches({ itemId, unit }: { itemId: string; unit: 
   const open = all.filter((l) => l.left > 0.0005);
   const usedUp = all.filter((l) => l.left <= 0.0005).slice(-5);
   const rows = [...usedUp, ...open];
-  const entries = await db.productionEntry.findMany({ where: { id: { in: rows.map((l) => l.entryId).filter((x): x is string => !!x) } }, select: { id: true, day: true, shift: true } });
+  const entries = await db.productionEntry.findMany({ where: { id: { in: rows.map((l) => l.entryId).filter((x): x is string => !!x) } }, select: { id: true, day: true, batches: true } });
   const entry = new Map(entries.map((e) => [e.id, e]));
   const v = fifo.value(itemId);
   const per = unit.toLowerCase() === "kg" ? "kg" : t("md.pcs");
@@ -26,7 +26,7 @@ export default async function Batches({ itemId, unit }: { itemId: string; unit: 
     if (l.source === "OPENING") return t("lot.opening", { date: formatDate(FIFO_START, locale) });
     if (l.source === "PRODUCTION") {
       const e = l.entryId ? entry.get(l.entryId) : null;
-      return e ? <Link href={`/production?day=${e.day.toISOString().slice(0, 10)}`} className="text-brand-600 hover:underline">{t("lot.production", { day: e.day.toISOString().slice(0, 10), shift: e.shift })}</Link> : t("lot.productionGone");
+      return e ? <Link href={`/production?day=${e.day.toISOString().slice(0, 10)}`} className="text-brand-600 hover:underline">{t("lot.production", { day: e.day.toISOString().slice(0, 10), batches: Number(e.batches) })}</Link> : t("lot.productionGone");
     }
     if (l.docId) return <Link href={`/stock/${l.docId}`} className="text-brand-600 hover:underline" dir="ltr">{l.docNumber}</Link>;
     return t(`lot.src.${l.source}`);

@@ -28,7 +28,7 @@ export default async function NewStockDocPage({ searchParams }: { searchParams: 
     if (!allowed.includes(d.type as DocType)) redirect("/forbidden");
     const num = (v: unknown) => (v === null || v === undefined ? "" : String(Number(v)));
     edit = {
-      id: d.id, number: d.number, type: d.type as DocType, reason: d.reason ?? "", customerId: d.customerId ?? "", phone: d.phone ?? "", supplierRef: d.supplierRef ?? "", delivery: d.delivery ?? "",
+      id: d.id, number: d.number, type: d.type as DocType, reason: d.reason ?? "", party: d.type === "INPUT" || d.type === "OUTPUT" ? d.party ?? "" : "", reference: d.reference ?? "", customerId: d.customerId ?? "", phone: d.phone ?? "", supplierRef: d.supplierRef ?? "", delivery: d.delivery ?? "",
       currency: (d.currency ?? "IQD") as EditDoc["currency"], rate: num(d.rate), orderId: d.orderId ?? "", note: d.note ?? "",
       invKind: d.discountKind ?? "PERCENT", invDisc: num(d.discountValue), paid: Math.round(d.payments.reduce((x, p) => x + Math.abs(Number(p.amount)), 0) * 100) / 100,
       lines: d.lines.map((l) => ({ itemId: l.productId, qty: String(Math.abs(Number(l.qty))), price: num(l.unitPrice), discKind: l.discountKind ?? "PERCENT", disc: num(l.discountValue) })),

@@ -2,8 +2,9 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { factoryDay, parseFactoryDate, toFactoryDateInput } from "@/lib/time";
-import { ISSUE_TONE, MAINT_TONE, MOVE_TONE, ORDER_TONE, PRIORITY_TONE, SEVERITY_TONE, ENTRY_QC_TONE } from "@/lib/tones";
-import type { Column, ReportDef, ReportQuery, Row } from "./types";
+import { MOVE_TONE, ORDER_TONE } from "@/lib/tones";
+import { lossOf } from "@/lib/recipe-math";
+import type { ReportDef, ReportQuery, Row } from "./types";
 import { lineTotal } from "@/lib/money";
 import { canSeeMoney } from "@/lib/auth";
 
@@ -11,9 +12,8 @@ import { canSeeMoney } from "@/lib/auth";
 const DAY = 86_400_000;
 const num = (v: unknown) => Number(v ?? 0);
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 1000) / 10 : null);
-const hours = (ms: number) => Math.round((ms / 3_600_000) * 10) / 10;
 const sum = <T,>(xs: T[], f: (x: T) => number) => xs.reduce((s, x) => s + f(x), 0);
-const PRIORITY: Column = { key: "priority", label: "rep.col.priority", type: "status", ns: "status.priority", tones: PRIORITY_TONE };
+const r6 = (n: number) => Math.round(n * 1e6) / 1e6;
 const MAX_ROWS = 5000;
 /** ProductionEntry.day is a DATE: compare with the factory calendar day strings. */
 const dayRange = (q: ReportQuery) => ({ gte: new Date(`${q.from}T00:00:00Z`), lte: new Date(`${q.to}T00:00:00Z`) });
@@ -23,51 +23,61 @@ async function userNames() {
   const m = new Map(users.map((u) => [u.id, u.fullName]));
   return (id: string | null | undefined) => (id ? m.get(id) ?? "—" : "—");
 }
+const unitOf = (u: string) => (u.toLowerCase() === "kg" ? "kg" : "pcs");
 
 // ─────────────────────────────────────────────────────────── reports
 export const REPORTS: ReportDef[] = [
-  // 1 ─ Production by day / week / month / product / shift
+  // 1 ─ Production by day / week / month / product: batches, pieces, expected and lost
   {
     key: "production",
     section: "production",
     icon: "Factory",
     filters: ["range", "group", "product"],
-    groups: ["day", "week", "month", "product", "shift"],
+    groups: ["day", "week", "month", "product"],
     async run(q) {
       const g = q.group ?? "day";
-      const D = Prisma.sql`e."day"`;
-      const label = {
-        day: Prisma.sql`to_char(${D}, 'YYYY-MM-DD')`,
-        week: Prisma.sql`to_char(date_trunc('week', ${D}), 'YYYY-MM-DD')`,
-        month: Prisma.sql`to_char(${D}, 'YYYY-MM')`,
-        product: Prisma.sql`p.code || ' · ' || p.name`,
-        shift: Prisma.sql`e.shift::text`,
-      }[g] ?? Prisma.sql`to_char(${D}, 'YYYY-MM-DD')`;
-      const rows = await db.$queryRaw<{ label: string; pcs: bigint; entries: bigint; products: bigint; rejected: bigint }[]>`
-        SELECT ${label} AS label, SUM(e.quantity) AS pcs, COUNT(*) AS entries, COUNT(DISTINCT e."productId") AS products,
-               COALESCE(SUM((SELECT SUM(i."qtyRejected") FROM "QcInspection" i WHERE i."entryId" = e.id)), 0) AS rejected
-        FROM "ProductionEntry" e JOIN "Product" p ON p.id = e."productId"
-        WHERE e."day" >= ${q.from}::date AND e."day" <= ${q.to}::date
-          ${q.product ? Prisma.sql`AND e."productId" = ${q.product}` : Prisma.empty}
-        GROUP BY 1 ORDER BY 1`;
-      let out: Row[] = rows.map((r) => ({ label: r.label, pcs: num(r.pcs), rejected: num(r.rejected), net: num(r.pcs) - num(r.rejected), entries: num(r.entries), products: num(r.products) }));
+      const list = await db.productionEntry.findMany({
+        where: { day: dayRange(q), ...(q.product ? { productId: q.product } : {}) },
+        select: { day: true, quantity: true, batches: true, expectedPerBatch: true, productId: true, product: { select: { code: true, name: true } } },
+      });
+      const key = (e: (typeof list)[number]) => {
+        const d = e.day.toISOString().slice(0, 10);
+        if (g === "product") return `${e.product.code} · ${e.product.name}`;
+        if (g === "month") return d.slice(0, 7);
+        if (g === "week") { const t = Date.parse(`${d}T00:00:00Z`); const wd = (new Date(t).getUTCDay() + 6) % 7; return new Date(t - wd * DAY).toISOString().slice(0, 10); }
+        return d;
+      };
+      const groups = new Map<string, { label: string; batches: number; pcs: number; expected: number; lost: number; entries: number; products: Set<string> }>();
+      for (const e of list) {
+        const k = key(e);
+        const c = groups.get(k) ?? { label: k, batches: 0, pcs: 0, expected: 0, lost: 0, entries: 0, products: new Set<string>() };
+        const l = lossOf(Number(e.batches), e.quantity, e.expectedPerBatch);
+        c.batches = Math.round((c.batches + Number(e.batches)) * 1000) / 1000; c.pcs += e.quantity; c.entries++; c.products.add(e.productId);
+        if (l) { c.expected += l.expected; c.lost += l.lost; }
+        groups.set(k, c);
+      }
+      let out: Row[] = [...groups.values()].sort((a, b) => a.label.localeCompare(b.label)).map((c) => ({
+        label: c.label, batches: c.batches, pcs: c.pcs, expected: c.expected || null, lost: c.expected ? c.lost : null, lossPct: pct(c.lost, c.expected), entries: c.entries, products: c.products.size,
+      }));
       if (g === "day") {
         const have = new Map(out.map((r) => [r.label, r]));
         out = [];
         for (let t = Date.parse(`${q.from}T00:00:00Z`); t <= Date.parse(`${q.to}T00:00:00Z`) && out.length < 400; t += DAY) {
           const d = new Date(t).toISOString().slice(0, 10);
-          out.push(have.get(d) ?? { label: d, pcs: 0, rejected: 0, net: 0, entries: 0, products: 0 });
+          out.push(have.get(d) ?? { label: d, batches: 0, pcs: 0, expected: null, lost: null, lossPct: null, entries: 0, products: 0 });
         }
       }
       if (g === "product") out.sort((a, b) => num(b.pcs) - num(a.pcs));
-      const pcs = sum(out, (r) => num(r.pcs)), rejected = sum(out, (r) => num(r.rejected));
+      const pcs = sum(out, (r) => num(r.pcs)), expected = sum(out, (r) => num(r.expected)), lost = sum(out, (r) => num(r.lost));
       const days = Math.max(1, Math.round((Date.parse(`${q.to}T00:00:00Z`) - Date.parse(`${q.from}T00:00:00Z`)) / DAY) + 1);
       return {
         columns: [
-          { key: "label", label: `rep.group.${g}`, type: g === "shift" ? "status" : "text", ns: "rep.shift" },
+          { key: "label", label: `rep.group.${g}` },
+          { key: "batches", label: "rep.col.batches", type: "qty", total: true },
           { key: "pcs", label: "rep.col.produced", type: "int", total: true },
-          { key: "rejected", label: "rep.col.rejected", type: "int", total: true },
-          { key: "net", label: "rep.col.good", type: "int", total: true, wide: true },
+          { key: "expected", label: "rep.col.expected", type: "int", total: true, wide: true },
+          { key: "lost", label: "rep.col.lost", type: "int", total: true },
+          { key: "lossPct", label: "rep.col.lossPct", type: "pct" },
           { key: "entries", label: "rep.col.entries", type: "int", total: true, wide: true },
           ...(g === "product" ? [] : [{ key: "products", label: "rep.col.products", type: "int" as const, wide: true }]),
         ],
@@ -76,51 +86,87 @@ export const REPORTS: ReportDef[] = [
         chart: { label: "label", value: "pcs" },
         kpis: [
           { label: "rep.kpi.producedPcs", value: pcs, type: "int" },
-          { label: "rep.kpi.rejectedPcs", value: rejected, type: "int", tone: rejected ? "warn" : undefined },
-          { label: "rep.kpi.rejectionRate", value: pct(rejected, pcs), type: "pct" },
+          { label: "rep.kpi.batches", value: Math.round(sum(out, (r) => num(r.batches)) * 1000) / 1000, type: "int" },
+          { label: "rep.kpi.lostPcs", value: expected ? lost : null, type: "int", tone: lost > 0 ? "warn" : undefined },
+          { label: "rep.kpi.lossRate", value: pct(lost, expected), type: "pct" },
           { label: "rep.kpi.avgPerDay", value: Math.round(pcs / days), type: "int" },
         ],
       };
     },
   },
 
-  // 2 ─ Every daily production entry
+  // 2 ─ Every production run
   {
     key: "production-entries",
     section: "production",
     icon: "ListChecks",
-    filters: ["range", "product", "status"],
-    statusFilter: { ns: "status.entryQc", values: ["NOT_INSPECTED", "APPROVED", "REJECTED"] },
+    filters: ["range", "product", "employee"],
     async run(q) {
       const name = await userNames();
       const list = await db.productionEntry.findMany({
-        where: { day: dayRange(q), ...(q.product ? { productId: q.product } : {}), ...(q.status ? { qcStatus: q.status as never } : {}) },
-        orderBy: [{ day: "asc" }, { shift: "asc" }, { product: { code: "asc" } }],
+        where: { day: dayRange(q), ...(q.product ? { productId: q.product } : {}), ...(q.employee ? { createdById: q.employee } : {}) },
+        orderBy: [{ day: "asc" }, { createdAt: "asc" }],
         take: MAX_ROWS,
-        include: { product: true, inspections: { select: { qtyRejected: true } } },
+        include: { product: true },
       });
-      const rows: Row[] = list.map((e) => ({
-        day: e.day.toISOString().slice(0, 10), shift: e.shift, product: `${e.product.code} · ${e.product.name}`, qty: e.quantity,
-        rejected: sum(e.inspections, (i) => i.qtyRejected), qc: e.qcStatus, by: name(e.createdById),
-        _href: { product: `/qc/entries/${e.id}` },
-      }));
+      const rows: Row[] = list.map((e) => {
+        const l = lossOf(Number(e.batches), e.quantity, e.expectedPerBatch);
+        return {
+          day: e.day.toISOString().slice(0, 10), product: `${e.product.code} · ${e.product.name}`, batches: Number(e.batches), qty: e.quantity,
+          expected: l?.expected ?? null, lost: l?.lost ?? null, lossPct: l?.pct ?? null, by: name(e.createdById), notes: e.notes ?? "",
+          _href: { day: `/production?day=${e.day.toISOString().slice(0, 10)}` },
+        };
+      });
+      const expected = sum(rows, (r) => num(r.expected)), lost = sum(rows, (r) => num(r.lost));
       return {
         columns: [
           { key: "day", label: "rep.col.day", type: "code" },
-          { key: "shift", label: "rep.col.shift", type: "status", ns: "rep.shift" },
           { key: "product", label: "rep.col.product" },
+          { key: "batches", label: "rep.col.batches", type: "qty", total: true },
           { key: "qty", label: "rep.col.produced", type: "int", total: true },
-          { key: "rejected", label: "rep.col.rejected", type: "int", total: true },
-          { key: "qc", label: "rep.col.qc", type: "status", ns: "status.entryQc", tones: ENTRY_QC_TONE },
+          { key: "expected", label: "rep.col.expected", type: "int", total: true, wide: true },
+          { key: "lost", label: "rep.col.lost", type: "int", total: true },
+          { key: "lossPct", label: "rep.col.lossPct", type: "pct" },
           { key: "by", label: "rep.col.by", wide: true },
+          { key: "notes", label: "rep.col.note", wide: true },
         ],
         rows,
         totals: true,
         kpis: [
           { label: "rep.kpi.entries", value: rows.length, type: "int" },
           { label: "rep.kpi.producedPcs", value: sum(rows, (r) => num(r.qty)), type: "int" },
-          { label: "rep.kpi.notInspected", value: rows.filter((r) => r.qc === "NOT_INSPECTED").length, type: "int" },
+          { label: "rep.kpi.lostPcs", value: expected ? lost : null, type: "int", tone: lost > 0 ? "warn" : undefined },
+          { label: "rep.kpi.lossRate", value: pct(lost, expected), type: "pct" },
         ],
+      };
+    },
+  },
+
+  // 3 ─ What production used: ingredients and packaging taken from stock (quantities only)
+  {
+    key: "consumption",
+    section: "production",
+    icon: "FlaskConical",
+    filters: ["range", "item"],
+    async run(q) {
+      const used = await db.stockMovement.groupBy({
+        by: ["productId"],
+        where: { type: "USE", createdAt: { gte: q.start, lt: q.end }, ...(q.item ? { productId: q.item } : {}) },
+        _sum: { qty: true },
+      });
+      const items = await db.product.findMany({ where: { id: { in: used.map((u) => u.productId) } }, select: { id: true, code: true, name: true, unit: true } });
+      const rows: Row[] = items.map((it) => ({
+        item: `${it.code} · ${it.name}`, used: r6(-num(used.find((u) => u.productId === it.id)?._sum.qty)), unit: unitOf(it.unit),
+        _href: { item: `/products/${it.id}` },
+      })).sort((a, b) => String(a.item).localeCompare(String(b.item)));
+      return {
+        columns: [
+          { key: "item", label: "rep.col.item" },
+          { key: "used", label: "rep.col.used", type: "qty" },
+          { key: "unit", label: "rep.col.unit" },
+        ],
+        rows,
+        kpis: [{ label: "rep.kpi.itemsUsed", value: rows.length, type: "int" }],
       };
     },
   },
@@ -213,321 +259,111 @@ export const REPORTS: ReportDef[] = [
     },
   },
 
-  // 8 ─ Maintenance requests
+  // ─ The warehouse's daily in / out report: opening, in, out and closing stock per item, or every movement
   {
-    key: "maintenance",
-    section: "service",
-    icon: "Wrench",
-    filters: ["range", "machine", "status", "priority"],
-    statusFilter: { ns: "status.maint", values: ["OPEN", "IN_PROGRESS", "WAITING_PARTS", "COMPLETED", "VERIFIED", "CANCELLED"] },
-    async run(q) {
-      const name = await userNames();
-      const list = await db.maintenanceRequest.findMany({
-        where: {
-          createdAt: { gte: q.start, lt: q.end },
-          ...(q.machine ? { machineId: q.machine } : {}),
-          ...(q.status ? { status: q.status as never } : {}),
-          ...(q.priority ? { priority: q.priority as never } : {}),
-        },
-        orderBy: { createdAt: "asc" },
-        take: MAX_ROWS,
-        include: { machine: true, mold: true },
-      });
-      const rows: Row[] = list.map((m) => ({
-        mr: m.number, machine: m.machine.code, mold: m.mold?.code ?? null, title: m.title, priority: m.priority, status: m.status,
-        down: m.machineDown ? "yes" : "no", preventive: m.isPreventive ? "yes" : "no", created: m.createdAt, completed: m.completedAt,
-        hours: m.completedAt ? hours(m.completedAt.getTime() - m.createdAt.getTime()) : null, assigned: name(m.assignedToId),
-        _href: { mr: `/service/requests/${m.id}` },
-      }));
-      const done = rows.filter((r) => r.hours != null);
-      return {
-        columns: [
-          { key: "mr", label: "rep.col.request", type: "code" },
-          { key: "machine", label: "rep.col.machine", type: "code" },
-          { key: "mold", label: "rep.col.mold", type: "code", wide: true },
-          { key: "title", label: "rep.col.title" },
-          { ...PRIORITY, wide: true },
-          { key: "status", label: "rep.col.status", type: "status", ns: "status.maint", tones: MAINT_TONE },
-          { key: "down", label: "rep.col.machineDown", type: "yesno", wide: true },
-          { key: "preventive", label: "rep.col.preventive", type: "yesno", wide: true },
-          { key: "created", label: "rep.col.created", type: "datetime", wide: true },
-          { key: "completed", label: "rep.col.completed", type: "datetime", wide: true },
-          { key: "hours", label: "rep.col.hoursToFix", type: "hours" },
-          { key: "assigned", label: "rep.col.assigned", wide: true },
-        ],
-        rows,
-        kpis: [
-          { label: "rep.kpi.requests", value: rows.length, type: "int" },
-          { label: "rep.kpi.stillOpen", value: rows.filter((r) => ["OPEN", "IN_PROGRESS", "WAITING_PARTS"].includes(String(r.status))).length, type: "int", tone: "warn" },
-          { label: "rep.kpi.machineDownRequests", value: rows.filter((r) => r.down === "yes").length, type: "int" },
-          { label: "rep.kpi.avgHoursToFix", value: done.length ? Math.round((sum(done, (r) => num(r.hours)) / done.length) * 10) / 10 : null, type: "hours" },
-        ],
-      };
-    },
-  },
-
-  // 9 ─ Mold changes (from technicians' service reports)
-  {
-    key: "mold-changes",
-    section: "service",
-    icon: "ArrowLeftRight",
-    filters: ["range", "machine"],
-    async run(q) {
-      const name = await userNames();
-      const list = await db.serviceReport.findMany({
-        where: {
-          startTime: { gte: q.start, lt: q.end },
-          OR: [{ moldRemovedId: { not: null } }, { moldInstalledId: { not: null } }],
-          ...(q.machine ? { machineId: q.machine } : {}),
-        },
-        orderBy: { startTime: "asc" },
-        take: MAX_ROWS,
-        include: { machine: true, moldRemoved: true, moldInstalled: true },
-      });
-      const rows: Row[] = list.map((s) => ({
-        sr: s.number, at: s.startTime, shift: s.shift, machine: s.machine.code, removed: s.moldRemoved?.code ?? null, installed: s.moldInstalled?.code ?? null,
-        reason: s.moldChangeReason, minutes: s.downtimeMinutes, technician: name(s.technicianId),
-        _href: { sr: `/service/reports/${s.id}` },
-      }));
-      const mins = sum(rows, (r) => num(r.minutes));
-      return {
-        columns: [
-          { key: "sr", label: "rep.col.serviceReport", type: "code" },
-          { key: "at", label: "rep.col.when", type: "datetime" },
-          { key: "shift", label: "rep.col.shift", type: "status", ns: "rep.shift", wide: true },
-          { key: "machine", label: "rep.col.machine", type: "code" },
-          { key: "removed", label: "rep.col.moldRemoved", type: "code" },
-          { key: "installed", label: "rep.col.moldInstalled", type: "code" },
-          { key: "reason", label: "rep.col.reason", wide: true },
-          { key: "minutes", label: "rep.col.minutes", type: "int", total: true },
-          { key: "technician", label: "rep.col.technician", wide: true },
-        ],
-        rows,
-        totals: true,
-        kpis: [
-          { label: "rep.kpi.moldChanges", value: rows.length, type: "int" },
-          { label: "rep.kpi.changeHours", value: hours(mins * 60000), type: "hours" },
-          { label: "rep.kpi.avgChangeMinutes", value: rows.length ? Math.round(mins / rows.length) : null, type: "int" },
-        ],
-      };
-    },
-  },
-
-  // 11 ─ Quality defects by category
-  {
-    key: "defects",
-    section: "quality",
-    icon: "Bug",
-    filters: ["range", "product", "severity"],
-    async run(q) {
-      const issues = await db.qualityIssue.findMany({
-        where: {
-          createdAt: { gte: q.start, lt: q.end },
-          ...(q.severity ? { severity: q.severity as never } : {}),
-          ...(q.product ? { entry: { productId: q.product } } : {}),
-        },
-        select: { severity: true, status: true, category: { select: { code: true, name: true } } },
-      });
-      const g = new Map<string, { label: string; n: number; critical: number; major: number; minor: number; open: number; resolved: number }>();
-      for (const i of issues) {
-        const k = i.category.code;
-        const c = g.get(k) ?? { label: `${i.category.code} · ${i.category.name}`, n: 0, critical: 0, major: 0, minor: 0, open: 0, resolved: 0 };
-        c.n++;
-        c[i.severity.toLowerCase() as "critical" | "major" | "minor"]++;
-        if (i.status === "RESOLVED") c.resolved++; else c.open++;
-        g.set(k, c);
-      }
-      const rows: Row[] = [...g.values()].sort((a, b) => b.n - a.n).map((c) => ({ ...c, share: pct(c.n, issues.length) }));
-      const resolved = issues.filter((i) => i.status === "RESOLVED").length;
-      return {
-        columns: [
-          { key: "label", label: "rep.col.defectType" },
-          { key: "n", label: "rep.col.issues", type: "int", total: true },
-          { key: "critical", label: "rep.col.critical", type: "int", total: true },
-          { key: "major", label: "rep.col.major", type: "int", total: true, wide: true },
-          { key: "minor", label: "rep.col.minor", type: "int", total: true, wide: true },
-          { key: "open", label: "rep.col.unresolved", type: "int", total: true },
-          { key: "resolved", label: "rep.col.resolved", type: "int", total: true, wide: true },
-          { key: "share", label: "rep.col.share", type: "pct" },
-        ],
-        rows,
-        totals: true,
-        chart: { label: "label", value: "n" },
-        kpis: [
-          { label: "rep.kpi.issues", value: issues.length, type: "int" },
-          { label: "rep.kpi.critical", value: issues.filter((i) => i.severity === "CRITICAL").length, type: "int", tone: "bad" },
-          { label: "rep.kpi.unresolved", value: issues.length - resolved, type: "int", tone: "warn" },
-          { label: "rep.kpi.resolvedRate", value: pct(resolved, issues.length), type: "pct" },
-        ],
-      };
-    },
-  },
-
-  // ─ Quality: rejection rates by product
-  {
-    key: "quality",
-    section: "quality",
-    icon: "ShieldCheck",
-    filters: ["range", "product"],
-    async run(q) {
-      const rows0 = await db.$queryRaw<{ productId: string; code: string; name: string; inspections: bigint; inspected: bigint; rejected: bigint }[]>`
-        SELECT p.id AS "productId", p.code, p.name, COUNT(*) AS inspections, SUM(i."qtyInspected") AS inspected, SUM(i."qtyRejected") AS rejected
-        FROM "QcInspection" i JOIN "ProductionEntry" e ON e.id = i."entryId" JOIN "Product" p ON p.id = e."productId"
-        WHERE i."inspectedAt" >= ${q.start} AND i."inspectedAt" < ${q.end}
-          ${q.product ? Prisma.sql`AND p.id = ${q.product}` : Prisma.empty}
-        GROUP BY p.id`;
-      const made = await db.productionEntry.groupBy({ by: ["productId"], where: { day: dayRange(q), ...(q.product ? { productId: q.product } : {}) }, _sum: { quantity: true } });
-      const rows: Row[] = rows0
-        .map((r) => ({
-          product: `${r.code} · ${r.name}`, inspections: num(r.inspections), inspected: num(r.inspected), rejected: num(r.rejected),
-          rejRate: pct(num(r.rejected), num(r.inspected)), made: made.find((m) => m.productId === r.productId)?._sum.quantity ?? 0,
-        }))
-        .sort((a, b) => num(b.rejRate) - num(a.rejRate));
-      const inspected = sum(rows, (r) => num(r.inspected)), rejected = sum(rows, (r) => num(r.rejected));
-      return {
-        columns: [
-          { key: "product", label: "rep.col.product" },
-          { key: "inspections", label: "rep.col.inspections", type: "int", total: true },
-          { key: "inspected", label: "rep.col.inspected", type: "int", total: true },
-          { key: "rejected", label: "rep.col.rejected", type: "int", total: true },
-          { key: "rejRate", label: "rep.col.rejectionRate", type: "pct" },
-          { key: "made", label: "rep.col.madeInPeriod", type: "int", total: true, wide: true },
-        ],
-        rows,
-        totals: true,
-        chart: { label: "product", value: "rejRate", type: "pct" },
-        kpis: [
-          { label: "rep.kpi.inspections", value: sum(rows, (r) => num(r.inspections)), type: "int" },
-          { label: "rep.kpi.inspectedPcs", value: inspected, type: "int" },
-          { label: "rep.kpi.rejectedPcs", value: rejected, type: "int", tone: rejected ? "bad" : undefined },
-          { label: "rep.kpi.rejectionRate", value: pct(rejected, inspected), type: "pct" },
-        ],
-      };
-    },
-  },
-
-  // ─ Corrective actions
-  {
-    key: "corrective",
-    section: "quality",
-    icon: "ClipboardPen",
-    filters: ["range", "severity", "product"],
-    async run(q) {
-      const name = await userNames();
-      const list = await db.correctiveAction.findMany({
-        where: {
-          performedAt: { gte: q.start, lt: q.end },
-          issue: { ...(q.severity ? { severity: q.severity as never } : {}), ...(q.product ? { entry: { productId: q.product } } : {}) },
-        },
-        orderBy: { performedAt: "asc" },
-        take: MAX_ROWS,
-        include: { issue: { include: { category: true, entry: { include: { product: true } } } } },
-      });
-      const rows: Row[] = list.map((a) => ({
-        at: a.performedAt, issue: a.issue.number, severity: a.issue.severity, category: a.issue.category.name, product: a.issue.entry.product.code,
-        action: a.description, by: name(a.performedById), status: a.issue.status,
-        _href: { issue: `/qc/issues/${a.issueId}`, product: `/qc/entries/${a.issue.entryId}` },
-      }));
-      const issueIds = new Set(list.map((a) => a.issueId));
-      const resolved = new Set(list.filter((a) => a.issue.status === "RESOLVED").map((a) => a.issueId));
-      return {
-        columns: [
-          { key: "at", label: "rep.col.when", type: "datetime" },
-          { key: "issue", label: "rep.col.issue", type: "code" },
-          { key: "severity", label: "rep.col.severity", type: "status", ns: "status.severity", tones: SEVERITY_TONE },
-          { key: "category", label: "rep.col.defectType", wide: true },
-          { key: "product", label: "rep.col.product", type: "code", wide: true },
-          { key: "action", label: "rep.col.actionTaken" },
-          { key: "by", label: "rep.col.by", wide: true },
-          { key: "status", label: "rep.col.issueStatus", type: "status", ns: "status.issue", tones: ISSUE_TONE },
-        ],
-        rows,
-        kpis: [
-          { label: "rep.kpi.actions", value: rows.length, type: "int" },
-          { label: "rep.kpi.issuesCovered", value: issueIds.size, type: "int" },
-          { label: "rep.kpi.issuesResolved", value: resolved.size, type: "int", tone: "good" },
-        ],
-      };
-    },
-  },
-
-  // ─ Stock on hand per product, with in/out during the period
-  {
-    key: "stock",
-    section: "warehouse",
-    icon: "Boxes",
-    filters: ["range", "product"],
-    async run(q) {
-      const [onHand, moves] = await Promise.all([
-        db.stockMovement.groupBy({ by: ["productId"], where: { product: { kind: "PRODUCT" }, ...(q.product ? { productId: q.product } : {}) }, _sum: { qty: true } }),
-        db.stockMovement.groupBy({ by: ["productId", "type"], where: { product: { kind: "PRODUCT" }, createdAt: { gte: q.start, lt: q.end }, ...(q.product ? { productId: q.product } : {}) }, _sum: { qty: true } }),
-      ]);
-      const ids = [...new Set([...onHand.map((x) => x.productId), ...moves.map((x) => x.productId)])];
-      const products = await db.product.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, name: true } });
-      const mv = (pid: string, type: string) => Number(moves.find((m) => m.productId === pid && m.type === type)?._sum.qty ?? 0);
-      const rows: Row[] = products
-        .map((p) => ({
-          product: `${p.code} · ${p.name}`, produced: mv(p.id, "PRODUCTION"), rejected: -mv(p.id, "QC_REJECT"), out: -mv(p.id, "OUT"),
-          adjusted: mv(p.id, "ADJUST"), stock: Number(onHand.find((o) => o.productId === p.id)?._sum.qty ?? 0),
-        }))
-        .sort((a, b) => b.stock - a.stock);
-      return {
-        columns: [
-          { key: "product", label: "rep.col.product" },
-          { key: "produced", label: "rep.col.inProduced", type: "int", total: true },
-          { key: "rejected", label: "rep.col.outRejected", type: "int", total: true, wide: true },
-          { key: "out", label: "rep.col.outShipped", type: "int", total: true },
-          { key: "adjusted", label: "rep.col.adjusted", type: "signed", total: true, wide: true },
-          { key: "stock", label: "rep.col.inStockNow", type: "int", total: true },
-        ],
-        rows,
-        totals: true,
-        chart: { label: "product", value: "stock" },
-        kpis: [
-          { label: "rep.kpi.stockNow", value: sum(rows, (r) => num(r.stock)), type: "int" },
-          { label: "rep.kpi.producedPcs", value: sum(rows, (r) => num(r.produced)), type: "int" },
-          { label: "rep.kpi.outPcs", value: sum(rows, (r) => num(r.out)), type: "int" },
-        ],
-      };
-    },
-  },
-
-  // ─ Every stock movement
-  {
-    key: "movements",
+    key: "warehouse-daily",
     section: "warehouse",
     icon: "ArrowDownUp",
-    filters: ["range", "product", "type"],
-    typeFilter: { ns: "wh.mv", values: ["PRODUCTION", "USE", "QC_REJECT", "INPUT", "OUTPUT", "BUY", "SELL", "OUT", "ADJUST", "RECEIVE"] },
-    async run(q) {
+    filters: ["range", "group", "section", "item", "direction", "employee", "ref"],
+    groups: ["item", "movement"],
+    async run(q, ctx) {
       const name = await userNames();
-      const list = await db.stockMovement.findMany({
-        where: { createdAt: { gte: q.start, lt: q.end }, ...(q.product ? { productId: q.product } : {}), ...(q.type ? { type: q.type as never } : {}) },
-        orderBy: { createdAt: "asc" },
-        take: MAX_ROWS,
-        include: { product: true },
-      });
-      const rows: Row[] = list.map((m) => ({
-        at: m.createdAt, type: m.type, product: m.product.code, qty: Number(m.qty), reference: m.reference ?? m.reason, by: name(m.createdById),
-        ...(m.docId || m.entryId ? { _href: (m.docId ? { reference: `/stock/${m.docId}` } : { product: `/qc/entries/${m.entryId}` }) as Record<string, string> } : {}),
-      }));
-      const typed = (t: string) => sum(list.filter((m) => m.type === t), (m) => Number(m.qty));
+      const itemWhere: Prisma.ProductWhereInput = { ...(q.section ? { kind: q.section } : {}), ...(q.item ? { id: q.item } : {}) };
+      const refWhere: Prisma.StockMovementWhereInput = q.ref ? { OR: [
+        { reference: { contains: q.ref, mode: "insensitive" } },
+        { doc: { OR: [{ number: { contains: q.ref, mode: "insensitive" } }, { reference: { contains: q.ref, mode: "insensitive" } }, { invoiceNo: { contains: q.ref, mode: "insensitive" } }, { supplierRef: { contains: q.ref, mode: "insensitive" } }] } },
+      ] } : {};
+      const moveWhere: Prisma.StockMovementWhereInput = {
+        createdAt: { gte: q.start, lt: q.end },
+        product: itemWhere,
+        ...(q.direction === "IN" ? { qty: { gt: 0 } } : q.direction === "OUT" ? { qty: { lt: 0 } } : {}),
+        ...(q.employee ? { createdById: q.employee } : {}),
+        ...refWhere,
+      };
+      const SECTION_TONE = { PRODUCT: "blue", MATERIAL: "gray" } as const;
+
+      if (q.group === "movement") {
+        const list = await db.stockMovement.findMany({
+          where: moveWhere, orderBy: [{ createdAt: "asc" }, { id: "asc" }], take: MAX_ROWS,
+          include: {
+            product: { select: { id: true, code: true, name: true, unit: true, kind: true } },
+            doc: { select: { id: true, number: true, reference: true, reason: true, party: true, invoiceNo: true, supplierRef: true, currency: true, rate: true } },
+          },
+        });
+        const rows: Row[] = list.map((m) => {
+          const qty = Number(m.qty);
+          const price = m.unitPrice === null ? null : Number(m.unitPrice);
+          return {
+            at: m.createdAt, type: m.type, section: m.product.kind, item: `${m.product.code} · ${m.product.name}`,
+            in: qty > 0 ? r6(qty) : null, out: qty < 0 ? r6(-qty) : null, unit: unitOf(m.product.unit),
+            reason: m.doc?.reason ? m.doc.reason : m.type === "USE" || m.type === "PRODUCTION" ? `=${m.reason ?? ""}` : "",
+            party: m.doc?.party ?? "", ref: [m.doc?.number, m.doc?.reference, m.doc?.supplierRef].filter(Boolean).join(" · "),
+            by: name(m.createdById),
+            // Money columns only for people who see money (never even in the data for anyone else).
+            ...(ctx.money ? { price, currency: price !== null ? m.doc?.currency ?? "IQD" : "", value: price !== null ? Math.round(lineTotal(Math.abs(qty), price) * 100) / 100 : null } : {}),
+            _href: { item: `/products/${m.product.id}`, ...(m.doc ? { ref: `/stock/${m.doc.id}` } : {}) },
+          };
+        });
+        return {
+          columns: [
+            { key: "at", label: "rep.col.when", type: "datetime" },
+            { key: "type", label: "rep.col.movement", type: "status", ns: "wh.mv", tones: MOVE_TONE },
+            { key: "section", label: "rep.col.section", type: "status", ns: "md.kindPlural", tones: SECTION_TONE, wide: true },
+            { key: "item", label: "rep.col.item" },
+            { key: "in", label: "rep.col.in", type: "qty" },
+            { key: "out", label: "rep.col.out", type: "qty" },
+            { key: "unit", label: "rep.col.unit" },
+            { key: "reason", label: "rep.col.reason", type: "status", ns: "sd.reason", wide: true },
+            { key: "party", label: "rep.col.party", wide: true },
+            { key: "ref", label: "rep.col.reference" },
+            { key: "by", label: "rep.col.by", wide: true },
+            ...(ctx.money ? [
+              { key: "price", label: "rep.col.unitPrice", type: "qty" as const, wide: true },
+              { key: "currency", label: "rep.col.currency", wide: true },
+              { key: "value", label: "rep.col.amount", type: "int" as const },
+            ] : []),
+          ],
+          rows,
+          kpis: [
+            { label: "rep.kpi.movements", value: rows.length, type: "int" },
+            { label: "rep.kpi.inLines", value: rows.filter((r) => r.in !== null).length, type: "int" },
+            { label: "rep.kpi.outLines", value: rows.filter((r) => r.out !== null).length, type: "int" },
+          ],
+        };
+      }
+
+      // Per item: opening (before the period), in and out during it, closing (end of the period) — from the ledger.
+      const items = await db.product.findMany({ where: { ...itemWhere, OR: [{ archivedAt: null }, { stockMovements: { some: {} } }] }, orderBy: [{ kind: "asc" }, { code: "asc" }], select: { id: true, code: true, name: true, unit: true, kind: true } });
+      const ids = items.map((i) => i.id);
+      const [before, untilEnd, inQ, outQ] = await Promise.all([
+        db.stockMovement.groupBy({ by: ["productId"], where: { productId: { in: ids }, createdAt: { lt: q.start } }, _sum: { qty: true } }),
+        db.stockMovement.groupBy({ by: ["productId"], where: { productId: { in: ids }, createdAt: { lt: q.end } }, _sum: { qty: true } }),
+        q.direction === "OUT" ? [] : db.stockMovement.groupBy({ by: ["productId"], where: { ...moveWhere, productId: { in: ids }, qty: { gt: 0 } }, _sum: { qty: true } }),
+        q.direction === "IN" ? [] : db.stockMovement.groupBy({ by: ["productId"], where: { ...moveWhere, productId: { in: ids }, qty: { lt: 0 } }, _sum: { qty: true } }),
+      ]);
+      const get = (l: { productId: string; _sum: { qty: unknown } }[], id: string) => r6(num(l.find((x) => x.productId === id)?._sum.qty));
+      const filtered = !!(q.direction || q.employee || q.ref);
+      const rows: Row[] = items.map((it) => ({
+        section: it.kind, item: `${it.code} · ${it.name}`, unit: unitOf(it.unit),
+        opening: get(before, it.id), in: get(inQ, it.id), out: r6(-get(outQ, it.id)), closing: get(untilEnd, it.id),
+        _href: { item: `/products/${it.id}` },
+      })).filter((r) => !filtered || num(r.in) !== 0 || num(r.out) !== 0);
       return {
         columns: [
-          { key: "at", label: "rep.col.when", type: "datetime" },
-          { key: "type", label: "rep.col.movement", type: "status", ns: "wh.mv", tones: MOVE_TONE },
-          { key: "product", label: "rep.col.product", type: "code" },
-          { key: "qty", label: "rep.col.qty", type: "signed", total: true },
-          { key: "reference", label: "rep.col.reference" },
-          { key: "by", label: "rep.col.by", wide: true },
+          { key: "section", label: "rep.col.section", type: "status", ns: "md.kindPlural", tones: SECTION_TONE, wide: true },
+          { key: "item", label: "rep.col.item" },
+          { key: "unit", label: "rep.col.unit" },
+          { key: "opening", label: "rep.col.opening", type: "qty" },
+          { key: "in", label: "rep.col.in", type: "qty" },
+          { key: "out", label: "rep.col.out", type: "qty" },
+          { key: "closing", label: "rep.col.closing", type: "qty" },
         ],
         rows,
-        totals: true,
         kpis: [
-          { label: "rep.kpi.movements", value: rows.length, type: "int" },
-          { label: "rep.kpi.producedPcs", value: typed("PRODUCTION"), type: "int" },
-          { label: "rep.kpi.outPcs", value: -typed("OUT"), type: "int" },
-          { label: "rep.kpi.rejectedPcs", value: -typed("QC_REJECT"), type: "int" },
+          { label: "rep.kpi.items", value: rows.length, type: "int" },
+          { label: "rep.kpi.itemsWithIn", value: rows.filter((r) => num(r.in) > 0).length, type: "int" },
+          { label: "rep.kpi.itemsWithOut", value: rows.filter((r) => num(r.out) > 0).length, type: "int" },
+          { label: "rep.kpi.outOfStockAtEnd", value: rows.filter((r) => num(r.closing) <= 0).length, type: "int", tone: "warn" },
         ],
       };
     },
@@ -570,7 +406,7 @@ export const REPORTS: ReportDef[] = [
           { key: "party", label: "rep.col.party" },
           { key: "invoice", label: "rep.col.invoice", wide: true },
           { key: "product", label: "rep.col.product" },
-          { key: "qty", label: "rep.col.qty", type: "int" },
+          { key: "qty", label: "rep.col.qty", type: "qty" },
           { key: "price", label: "rep.col.unitPrice", type: "int", wide: true },
           { key: "discount", label: "rep.col.discount", type: "int", wide: true },
           { key: "total", label: "rep.col.amount", type: "int" },
@@ -650,7 +486,7 @@ export function reportAllowed(def: ReportDef, perms: Set<string>) {
 }
 
 export const REPORT_BY_KEY = new Map(REPORTS.map((r) => [r.key, r]));
-export const SECTIONS = ["production", "orders", "service", "quality", "warehouse", "money"] as const;
+export const SECTIONS = ["production", "orders", "warehouse", "money"] as const;
 
 // ─────────────────────────────────────────────────────────── query parsing
 const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
@@ -672,11 +508,13 @@ export function parseQuery(def: ReportDef, sp: Record<string, string | string[] 
     start: parseFactoryDate(from),
     end: factoryDay(parseFactoryDate(to)).end,
     product: pick("product", (v) => ID.test(v)),
-    machine: pick("machine", (v) => ID.test(v)),
+    item: pick("item", (v) => ID.test(v)),
+    section: pick("section", (v) => v === "PRODUCT" || v === "MATERIAL") as ReportQuery["section"],
+    direction: pick("direction", (v) => v === "IN" || v === "OUT") as ReportQuery["direction"],
+    employee: pick("employee", (v) => ID.test(v)),
+    ref: (() => { const v = get("ref")?.trim(); return v && v.length <= 80 ? v : undefined; })(),
     status: pick("status", (v) => !!def.statusFilter?.values.includes(v)),
-    priority: pick("priority", (v) => ["LOW", "NORMAL", "HIGH", "URGENT"].includes(v)),
     group: pick("group", (v) => !!def.groups?.includes(v)) ?? def.groups?.[0],
-    severity: pick("severity", (v) => ["MINOR", "MAJOR", "CRITICAL"].includes(v)),
     type: pick("type", (v) => WORD.test(v) && !!def.typeFilter?.values.includes(v)),
   };
 }
@@ -685,7 +523,7 @@ export function parseQuery(def: ReportDef, sp: Record<string, string | string[] 
 export function queryParams(def: ReportDef, q: ReportQuery) {
   const p = new URLSearchParams();
   if (def.filters.includes("range")) { p.set("from", q.from); p.set("to", q.to); }
-  for (const k of ["product", "machine", "status", "priority", "group", "severity", "type"] as const) {
+  for (const k of ["product", "item", "section", "direction", "employee", "ref", "status", "group", "type"] as const) {
     if (q[k] && def.filters.includes(k)) p.set(k, q[k]!);
   }
   return p;

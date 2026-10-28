@@ -3,7 +3,7 @@ import { Badge, cn } from "@/components/ui";
 import { cellText, kpiText, totalsRow, type T } from "@/lib/reports/format";
 import type { Column, Kpi, ReportResult, Row } from "@/lib/reports/types";
 
-const NUMERIC = new Set(["int", "signed", "pct", "hours", "days"]);
+const NUMERIC = new Set(["int", "qty", "signed", "pct", "hours", "days"]);
 
 export function KpiRow({ kpis, t, locale, print }: { kpis: Kpi[]; t: T; locale: string; print?: boolean }) {
   return (
@@ -106,7 +106,7 @@ export function ReportTable({ result, t, locale, limit, print }: { result: Repor
     const href = r._href?.[c.key];
     const content = c.type === "code" ? <span dir="ltr" className="font-mono text-[0.8rem]">{text}</span> : text;
     if (href && !print && text !== "—") return <Link href={href} className="font-semibold text-brand-600 hover:underline dark:text-brand-300">{content}</Link>;
-    if (c.type === "signed" && Number(v) < 0) return <span className="text-red-600 dark:text-red-400">{content}</span>;
+    if (c.type === "signed" && Number(v) < 0) return <span className="font-semibold">{content}</span>;
     return content;
   };
 

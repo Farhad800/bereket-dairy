@@ -1,9 +1,9 @@
 {
   "app": {
-    "company": "Bereket Plastic",
-    "system": "Factory Management System",
-    "welcome": "Welcome to Bereket Plastic Factory Management System",
-    "tagline": "Sales, production, service, quality and warehouse — one source of truth."
+    "company": "Bereket Dairy",
+    "system": "Dairy Factory Management System",
+    "welcome": "Welcome to Bereket Dairy Factory Management System",
+    "tagline": "Production, warehouse, sales and money — one source of truth."
   },
   "nav": {
     "main": "Main",
@@ -14,13 +14,9 @@
     "admin": "Administration",
     "dashboard": "Dashboard",
     "orders": "Orders",
-    "production": "Daily Production",
-    "service": "Technical Service",
-    "history": "Mold & Machine History",
-    "qc": "Quality Control",
-    "inventory": "Warehouse Stock",
-    "products": "Products",
-    "assets": "Machines & Molds",
+    "production": "Production",
+    "inventory": "Warehouse",
+    "products": "Products & Recipes",
     "reports": "Reports & Analytics",
     "notifications": "Notifications",
     "employees": "Employee Directory",
@@ -40,7 +36,7 @@
     "create": "Create",
     "edit": "Edit",
     "search": "Search",
-    "searchPlaceholder": "Search orders, batches, machines…",
+    "searchPlaceholder": "Search orders, products, documents…",
     "actions": "Actions",
     "status": "Status",
     "active": "Active",
@@ -88,9 +84,6 @@
     "title": "Dashboard",
     "greeting": "Hello, {name}",
     "producedToday": "Produced today (pcs)",
-    "criticalIssues": "Open critical quality issues",
-    "machinesDown": "Machines down",
-    "openMaintenance": "Open maintenance requests",
     "recentActivity": "Recent activity",
     "noActivity": "No activity yet.",
     "updated": "Updated {time}",
@@ -98,11 +91,11 @@
     "openPieces": "Pieces in open orders",
     "productsToday": "Products made today",
     "producedWeek": "Produced last 7 days",
-    "notInspected": "Entries not inspected (14 days)",
-    "rejectedWeek": "Rejected last 7 days (pcs)",
-    "openIssues": "Open quality issues",
-    "stock": "Pieces in stock",
-    "outWeek": "Out last 7 days (pcs)"
+    "stock": "Finished pieces in stock",
+    "outWeek": "Out last 7 days (pcs)",
+    "batchesToday": "Batches made today",
+    "lossWeekPct": "Loss last 7 days",
+    "outOfStock": "Recipe items out of stock"
   },
   "admin": {
     "employees": "Employees",
@@ -139,16 +132,10 @@
   "perm": {
     "resources": {
       "orders": "Customer orders",
-      "schedule": "Production schedule",
       "production": "Production",
-      "maintenance": "Maintenance requests",
-      "service": "Service reports",
-      "qc": "Quality control",
-      "warehouse": "Warehouse",
-      "shipments": "Shipments",
+      "warehouse": "Warehouse (quantities)",
       "customers": "Customers (accounts)",
-      "products": "Products",
-      "assets": "Machines & molds",
+      "products": "Products, items & recipes",
       "reports": "Reports",
       "users": "Employees",
       "roles": "Roles",
@@ -177,14 +164,14 @@
     }
   },
   "install": {
-    "title": "Add Bereket FMS to your home screen",
+    "title": "Add Bereket Dairy to your home screen",
     "button": "Install",
     "ios": "Tap Share ⎙ then “Add to Home Screen”.",
     "other": "Open it in one tap, like an app."
   },
   "offline": {
     "title": "You're offline",
-    "body": "Bereket FMS needs a connection to show live factory data. Reconnect and try again.",
+    "body": "Bereket Dairy needs a connection to show live factory data. Reconnect and try again.",
     "retry": "Retry"
   },
   "md": {
@@ -200,130 +187,35 @@
     "openOrders": "{n} open orders",
     "productCode": "Product code",
     "productName": "Product name",
-    "material": "Material",
-    "color": "Color",
-    "weightGrams": "Weight (g)",
-    "cycleTime": "Cycle time (s)",
-    "cycleTimeHint": "Used to check if a planned job fits its time slot",
     "unit": "Unit",
     "pcs": "pcs",
-    "qcRequired": "Inspection required before release",
-    "qcRequiredHint": "Otherwise batches are released and QC checks randomly",
-    "qcRequiredShort": "QC required",
     "specifications": "Specifications",
     "newProduct": "New product",
-    "molds": "Molds",
-    "machines": "Machines",
-    "machineCode": "Machine number",
-    "machineName": "Machine name",
-    "manufacturer": "Manufacturer",
-    "model": "Model",
-    "tonnage": "Clamping force (t)",
-    "newMachine": "New machine",
-    "openMaintenance": "{n} open maintenance",
-    "moldsMounted": "Molds here",
-    "moldCode": "Mold number",
-    "moldName": "Mold name",
-    "cavities": "Cavities",
     "product": "Product",
-    "currentMachine": "Mounted on machine",
-    "newMold": "New mold",
-    "shots": "Shot count",
-    "mold": "Mold",
-    "labels": "Labels",
-    "labelsN": "{n} labels",
     "productsN": "{n} products",
-    "viewLabels": "View labels",
-    "addLabels": "Add labels",
-    "moldOfProductHint": "The mold this product is made on. Every label on the same mold is its own product.",
-    "productNameHint": "For labelled products: the label name, e.g. “Zakho Water 500 ml”.",
-    "searchProducts": "Product, label, code or mold…",
-    "allMolds": "All molds",
-    "noMold": "Without a mold",
-    "showingFirst": "Showing the first {n} of {total}. Choose a mold or search to see the rest.",
-    "existingLabels": "Labels already on this mold",
-    "noLabelsYet": "No labels yet.",
-    "pasteLabels": "Labels — one per line",
-    "pasteLabelsHint": "Type or paste the label names, one per line (you can copy a whole column from Excel). Codes are given automatically ({code}-001, -002…). To use your own codes, paste two columns: code and name.",
-    "sameForAll": "Optional — applied to every label in this list:",
-    "saveLabels": "Save {n} labels",
-    "labelsSaved": "{n} labels saved as products.",
-    "labelsSkipped": "{n} were already there and were skipped.",
-    "name2": "Second name (Turkish / English)",
+    "searchProducts": "Product name or code…",
+    "showingFirst": "Showing the first {n} of {total}. Search to see the rest.",
+    "name2": "Second name (Arabic / Turkish / English)",
     "name2Hint": "Shown under the main name.",
-    "label": "Label",
-    "labelHint": "The label used on this product (1 per piece). The product's name is typed by hand.",
-    "productNameFromLabel": "Only for products without a label. With a label, the name is taken from the label.",
-    "noLabel": "No label",
-    "recipeLink": "Made of & packaging",
-    "recipe": "Made of / packaging",
+    "recipeLink": "Recipe",
+    "recipe": "Recipe",
     "recipeLines": "{n} items",
     "kindLabel": "Kind",
-    "labelUsedBy": "Products with this label",
-    "usedBy": "Used by these products",
+    "usedBy": "Used in these products' recipes",
     "notUsedYet": "Not used by any product yet.",
-    "unitWeight": "Weight of one bag / piece",
-    "unitWeightHint": "Needed when products count this item by the bag (e.g. 30 nylon per carton) but it is stocked in kg.",
     "saved": "Saved.",
     "save": "Save",
     "kind": {
-      "PRODUCT": "Product",
-      "STICKER": "Label",
-      "MATERIAL": "Raw material",
-      "PACKAGING": "Packaging"
+      "PRODUCT": "Finished product",
+      "MATERIAL": "Ingredient / production item"
     },
     "kindPlural": {
-      "PRODUCT": "Products",
-      "STICKER": "Labels",
-      "MATERIAL": "Raw materials",
-      "PACKAGING": "Packaging"
-    }
+      "PRODUCT": "Finished products",
+      "MATERIAL": "Ingredients & production items"
+    },
+    "noRecipeYet": "No recipe yet"
   },
   "status": {
-    "machine": {
-      "AVAILABLE": "Available",
-      "RUNNING": "Running",
-      "DOWN": "Broken down",
-      "MAINTENANCE": "In maintenance",
-      "RETIRED": "Retired"
-    },
-    "mold": {
-      "AVAILABLE": "Available",
-      "IN_USE": "In use",
-      "IN_REPAIR": "In repair",
-      "RETIRED": "Retired"
-    },
-    "priority": {
-      "LOW": "Low",
-      "NORMAL": "Normal",
-      "HIGH": "High",
-      "URGENT": "Urgent"
-    },
-    "maint": {
-      "OPEN": "Open",
-      "IN_PROGRESS": "In progress",
-      "WAITING_PARTS": "Waiting for parts",
-      "COMPLETED": "Completed",
-      "VERIFIED": "Verified",
-      "CANCELLED": "Cancelled"
-    },
-    "severity": {
-      "MINOR": "Minor",
-      "MAJOR": "Major",
-      "CRITICAL": "Critical"
-    },
-    "issue": {
-      "OPEN": "Open",
-      "IN_PROGRESS": "In progress",
-      "AWAITING_VERIFICATION": "Awaiting verification",
-      "RESOLVED": "Resolved",
-      "REOPENED": "Reopened"
-    },
-    "entryQc": {
-      "NOT_INSPECTED": "Not inspected",
-      "APPROVED": "Approved",
-      "REJECTED": "Rejected"
-    },
     "order": {
       "OPEN": "Open",
       "COMPLETED": "Completed",
@@ -430,50 +322,13 @@
       "complete": "Order completed",
       "reopen": "Order reopened"
     },
-    "job": {
-      "create": "Production job scheduled",
-      "update": "Production job updated",
-      "reschedule": "Production job rescheduled",
-      "cancel": "Production job cancelled",
-      "start": "Job started",
-      "pause": "Job paused",
-      "resume": "Job resumed",
-      "complete": "Job completed"
-    },
     "production": {
       "report": "Daily production entered",
       "correct": "Production entry corrected",
       "delete": "Production entry deleted"
     },
-    "batch": {
-      "open": "New batch opened"
-    },
-    "downtime": {
-      "log": "Stop recorded"
-    },
-    "maintenance": {
-      "create": "Maintenance request created",
-      "start": "Work started",
-      "waitParts": "Waiting for parts",
-      "complete": "Repair completed",
-      "verify": "Repair verified",
-      "reopen": "Reopened",
-      "cancel": "Cancelled",
-      "assign": "Assigned"
-    },
     "file": {
       "upload": "File added"
-    },
-    "qc": {
-      "approve": "QC approved an entry",
-      "partial": "QC partial release",
-      "hold": "QC put the batch on hold",
-      "reject": "QC rejected pieces",
-      "issue_create": "Quality issue opened",
-      "corrective_action": "Corrective action recorded",
-      "issue_submit": "Submitted for verification",
-      "issue_resolve": "Verified and resolved",
-      "issue_reopen": "Reopened"
     },
     "warehouse": {
       "receive": "Goods received"
@@ -481,18 +336,11 @@
     "stock": {
       "adjust": "Stock adjusted",
       "out": "Stock taken out",
-      "receive": "Stickers / materials received",
-      "use": "Stickers / materials used",
       "input": "Stock input",
       "output": "Stock output",
       "buy": "Purchase",
       "sell": "Sale",
       "edit": "Receipt changed"
-    },
-    "shipment": {
-      "create": "Shipment drafted, stock reserved",
-      "confirm": "Shipment dispatched",
-      "cancel": "Shipment cancelled"
     },
     "report": {
       "export": "Report exported"
@@ -537,35 +385,8 @@
       "archive": "Product archived",
       "restore": "Product restored",
       "delete": "Product deleted",
-      "bulk_create": "Labels added to a mold",
       "recipe": "Made of / packaging changed",
       "cost": "Cost changed"
-    },
-    "machine": {
-      "create": "Machine added",
-      "update": "Machine updated",
-      "archive": "Machine archived",
-      "restore": "Machine restored",
-      "delete": "Machine deleted"
-    },
-    "mold": {
-      "create": "Mold added",
-      "update": "Mold updated",
-      "archive": "Mold archived",
-      "restore": "Mold restored",
-      "delete": "Mold deleted"
-    },
-    "location": {
-      "save": "Storage location saved"
-    },
-    "preventive": {
-      "done": "Preventive task done"
-    },
-    "service": {
-      "report": "Service report filed"
-    },
-    "masterdata": {
-      "import": "Imported from Excel"
     },
     "cash": {
       "in": "Money put in the safe",
@@ -599,122 +420,8 @@
       "restore": "Supplier restored"
     }
   },
-  "sched": {
-    "newJob": "Schedule job",
-    "job": "Job",
-    "actual": "Actual",
-    "orderLine": "Order / product",
-    "remainingToPlan": "{n} pcs still to plan",
-    "machine": "Machine",
-    "mold": "Mold",
-    "start": "Start",
-    "finish": "Finish",
-    "plannedQty": "Planned quantity",
-    "sameAsOrder": "Same as order",
-    "conflictsTitle": "Check before saving",
-    "acknowledge": "I understand the warnings — schedule anyway",
-    "override": "Override the clash (needs a reason)",
-    "rescheduleReason": "Reason for rescheduling",
-    "rescheduleReasonHint": "Required if time, machine or mold changes",
-    "overrideReason": "Reason for override",
-    "saveAnyway": "Save with these issues",
-    "schedule": "Schedule",
-    "cancelJob": "Cancel job",
-    "shift": "Shift",
-    "today": "Today",
-    "machineDown": "Machine down",
-    "noMachines": "Add your injection machines first.",
-    "needsPlanning": "Needs planning",
-    "showAll": "show all",
-    "allPlanned": "All open orders are fully planned.",
-    "toPlan": "{n} pcs to plan",
-    "plan": "Plan",
-    "deadlinesInRange": "Deliveries due in this period",
-    "view": {
-      "day": "Day",
-      "week": "Week",
-      "month": "Month"
-    },
-    "conflict": {
-      "MACHINE_OVERLAP": "{machine} is already booked for {job} at this time.",
-      "MOLD_OVERLAP": "Mold {mold} is planned on {machine} for {job} at this time.",
-      "MACHINE_UNAVAILABLE": "{machine} is currently marked {status}.",
-      "MAINTENANCE_OPEN": "{machine} has open maintenance request {request} (machine down).",
-      "MOLD_UNAVAILABLE": "Mold {mold} is marked {status}.",
-      "MOLD_PRODUCT_MISMATCH": "Mold {mold} is registered for a different product than {product}.",
-      "DEADLINE": "Finishes after the requested delivery date of {order}.",
-      "CAPACITY": "Needs about {needed} h at this cycle time, but the slot is {available} h.",
-      "OVER_PLANNED": "Planned total {planned} pcs is more than the {ordered} ordered."
-    },
-    "openJob": "Open job"
-  },
   "prod": {
-    "reported": "Quantity added.",
-    "pausedMsg": "Job paused.",
-    "startedMsg": "Job started — first batch opened.",
-    "resumedMsg": "Job resumed.",
-    "newBatchMsg": "New batch opened.",
-    "completedMsg": "Job completed.",
-    "start": "Start job",
-    "reportTitle": "Report production",
-    "batch": "Batch",
-    "good": "Good pieces",
-    "defective": "Defective",
-    "addQuantity": "Add quantity",
-    "pause": "Pause",
-    "resume": "Resume",
-    "newBatch": "New batch",
-    "logDowntime": "Log stop",
-    "logDowntimeHint": "For a stop that already ended, without pausing the job.",
-    "complete": "Complete job",
-    "pauseTitle": "Why is the machine stopping?",
-    "category": "Reason type",
-    "whatHappened": "What happened",
-    "createMaintenance": "Send a maintenance request to Technical Service",
-    "machineDown": "Machine can't run until repaired",
-    "breakdownHint": "A breakdown always creates a maintenance request.",
-    "pauseConfirm": "Pause job",
-    "completeTitle": "Finish this job?",
-    "completeHint": "Closes the open batch and frees the machine. Remaining quantity stays on the order for a new job.",
-    "completeNote": "Note (optional)",
-    "correctLink": "Correct a reported quantity…",
-    "correctHint": "Old entries are never changed. A correction adds a + or − line with your reason, so the history stays complete.",
     "reason": "Reason",
-    "goodDelta": "Good pieces + / −",
-    "defectiveDelta": "Defective + / −",
-    "deltaHint": "Use a minus sign to remove, e.g. -200",
-    "saveCorrection": "Save correction",
-    "ofPlanned": "{done} of {total} pcs",
-    "downtime": "Downtime",
-    "minutes": "{n} min",
-    "plannedWindow": "Planned",
-    "actualWindow": "Actual",
-    "batches": "Batches / lots",
-    "noBatches": "A batch opens when the job starts.",
-    "qc": "Quality",
-    "open": "open",
-    "log": "Production log",
-    "correction": "correction",
-    "ongoing": "ongoing",
-    "shiftNow": "Current shift: {shift}",
-    "todayByMachine": "Today by machine (good / defective)",
-    "searchPlaceholder": "Job, order, product code or batch…",
-    "tab": {
-      "now": "Now & today",
-      "planned": "Planned",
-      "done": "Completed"
-    },
-    "cat": {
-      "BREAKDOWN": "Machine breakdown",
-      "MOLD_CHANGE": "Mold change",
-      "MOLD_PROBLEM": "Mold problem",
-      "MATERIAL": "No material / material problem",
-      "POWER": "Power cut",
-      "QUALITY": "Quality problem",
-      "NO_OPERATOR": "No operator",
-      "SETUP": "Setup / adjustment",
-      "OTHER": "Other"
-    },
     "last60": "last 60 days",
     "prevDay": "Previous day",
     "nextDay": "Next day",
@@ -727,111 +434,12 @@
     "entriesN": "{n} entries",
     "nothingDay": "Nothing entered for this day yet.",
     "correct": "Correct",
-    "correctQty": "Correct quantity",
     "correctReasonHint": "e.g. typing mistake",
-    "correctHelp": "Stock changes by the difference. Enter 0 to delete the entry. Entries already inspected by QC can't be changed."
-  },
-  "svc": {
-    "newRequest": "New maintenance request",
-    "newReport": "Daily service report",
-    "searchRequests": "Request no. or problem…",
-    "searchReports": "Report no. or work done…",
-    "openStatuses": "Open & completed",
-    "machineDown": "Machine down",
-    "preventive": "Preventive",
-    "assignedTo": "Assigned to",
-    "assignTo": "Assign to…",
-    "assigned": "Assigned.",
-    "moldChange": "Mold change",
-    "newPreventive": "New preventive task",
-    "pmTitle": "Task",
-    "pmTitleHint": "e.g. Change hydraulic oil filter, Clean mold vents",
-    "everyDays": "Every (days)",
-    "everyN": "every {n} days",
-    "nextDue": "Next due",
-    "lastDone": "Last done",
-    "markDone": "Mark done",
-    "makeRequest": "Create request",
-    "pause": "Pause",
-    "enable": "Enable",
-    "noPreventive": "No preventive tasks yet.",
-    "newRequestHint": "Technical Service is notified straight away.",
-    "sendRequest": "Send request",
-    "problem": "Problem",
-    "problemHint": "Short and clear, e.g. 'Oil leak at clamp cylinder'",
-    "details": "Details",
-    "relatedJob": "Related production job",
-    "machineDownHint": "The machine is shown as down in the schedule until the repair is completed.",
-    "reportedBy": "Reported by",
-    "readyAt": "Ready to run again",
-    "verified": "Verified",
-    "resolution": "Repair done",
-    "resolutionPlaceholder": "What was repaired or replaced?",
-    "reasonPlaceholder": "Reason (required)",
-    "newReportHint": "Record mold changes, repairs and maintenance done on your shift.",
-    "saveReport": "Save report",
-    "date": "Date",
-    "moldOnMachine": "Mold on machine",
-    "relatedRequest": "Maintenance request",
-    "relatedOrder": "Related order",
-    "workPerformed": "Work performed",
-    "moldRemoved": "Mold removed",
-    "moldInstalled": "Mold installed",
-    "moldChangeReason": "Reason for mold change",
-    "moldChangeReasonHint": "Required when a mold is removed or installed",
-    "breakdown": "Machine breakdown",
-    "startTime": "Start time",
-    "endTime": "End time",
-    "downtimeMinutes": "Machine stopped (minutes)",
-    "downtimeHint": "Leave empty to use start → end",
-    "spareParts": "Spare parts used",
-    "repairsCompleted": "Repairs completed",
-    "outstanding": "Outstanding work",
-    "followUp": "Follow-up needed",
-    "technician": "Technician",
-    "reportSubtitle": "Daily service report",
-    "hasOutstanding": "Has outstanding work",
-    "tab": {
-      "requests": "Maintenance requests",
-      "reports": "Service reports",
-      "preventive": "Preventive maintenance"
-    },
-    "pm": {
-      "ok": "On schedule",
-      "soon": "Due this week",
-      "overdue": "Overdue",
-      "off": "Paused"
-    },
-    "act": {
-      "start": "Start work",
-      "waitParts": "Waiting for parts",
-      "complete": "Repair completed",
-      "verify": "Verify",
-      "reopen": "Reopen",
-      "cancel": "Cancel request",
-      "confirm": "Confirm"
-    },
-    "done": {
-      "start": "Work started.",
-      "waitParts": "Marked as waiting for parts.",
-      "complete": "Repair completed — Production has been notified.",
-      "verify": "Verified.",
-      "reopen": "Reopened.",
-      "cancel": "Cancelled."
-    }
-  },
-  "hist": {
-    "lastDays": "Last {n} days",
-    "days": "{n} days",
-    "downtimeH": "Downtime (h)",
-    "breakdowns": "Breakdowns",
-    "moldChanges": "Mold changes",
-    "openRequests": "Open requests",
-    "requests": "Maintenance requests",
-    "repeated": "Repeated failures",
-    "repeatedWarning": "Repeated failures: {n} breakdowns in the last {days} days. Consider a root-cause check or overhaul.",
-    "timeline": "Timeline",
-    "downtimeByReason": "Downtime by reason"
+    "correctHelp": "Stock changes by the difference — refused if there isn't enough stock, or if the pieces have already left the warehouse. Type 0 batches and 0 pieces to delete the entry.",
+    "expected": "Expected from batches",
+    "lost": "Lost",
+    "lostOf": "{lost} of {expected} ({pct}%)",
+    "history": "Production"
   },
   "files": {
     "title": "Photos & documents",
@@ -844,183 +452,44 @@
     "none": "No notifications.",
     "markAll": "Mark all read"
   },
-  "qc": {
-    "policy": "QC picks daily production entries at random. Products marked “QC required” are listed first. Rejected pieces are removed from stock automatically.",
-    "criticalBanner": "{n} critical quality issues are open",
-    "searchBatches": "Batch, product code or order…",
-    "searchIssues": "Issue no., description or batch…",
-    "needsAttention": "Needs attention + last 7 days",
-    "randomPick": "Random sample suggestion:",
-    "notInspected": "Not inspected",
-    "inspection": "Inspection",
-    "decision": "Decision",
-    "inspected": "Inspected",
-    "accepted": "Accepted",
-    "rejectedShort": "Rejected",
-    "hold": "On hold",
-    "inspector": "Inspector",
-    "sample": "sample",
-    "full": "full inspection",
-    "unresolved": "Unresolved",
-    "severity": "Severity",
-    "actionsCount": "{n} actions",
-    "categoriesHelp": "Defect types used in inspections. Disable a type instead of deleting it, so past records stay intact.",
-    "newCategory": "New defect type",
-    "categoryName": "Defect type",
-    "recordInspection": "Record inspection",
-    "producedInBatch": "{n} good pieces produced in this batch",
-    "saved": "Inspection saved.",
-    "holdOnlyHint": "You can put a batch on hold. Releasing or rejecting needs QC approval rights.",
-    "sampleOnly": "Sample inspection (not every piece)",
-    "addMinorDefect": "+ Record a defect anyway",
-    "defect": "Defect",
-    "defectType": "Defect type",
-    "responsible": "Responsible department",
-    "defectDescription": "What is wrong",
-    "recommendedAction": "Recommended corrective action",
-    "saveDecision": "Save — {decision}",
-    "inWarehouse": "In warehouse: {available} available · {quarantine} quarantine · {rejected} rejected",
-    "noInspections": "Not inspected yet.",
-    "counts": "{inspected} inspected · {accepted} accepted · {rejected} rejected · {hold} held",
-    "batchStatus": "Batch status",
-    "correctiveActions": "Corrective actions",
-    "noActions": "No corrective action recorded yet.",
-    "addAction": "Record corrective action",
-    "actionPlaceholder": "What was done to fix the cause?",
-    "saveAction": "Save action",
-    "actionSaved": "Corrective action recorded.",
-    "submit": "Submit for QC verification",
-    "resolve": "Verify & resolve",
-    "toMaintenance": "Create maintenance request",
-    "reopenReason": "Reason to reopen",
-    "reopen": "Reopen",
-    "tab": {
-      "inspect": "To inspect",
-      "inspections": "Inspections",
-      "issues": "Quality issues",
-      "categories": "Defect types"
-    },
-    "dec": {
-      "APPROVE": "Approved",
-      "PARTIAL": "Partial release",
-      "HOLD": "Hold",
-      "REJECT": "Rejected"
-    },
-    "effect": {
-      "APPROVE": "The whole batch becomes approved stock.",
-      "PARTIAL": "Sorting result: the rejected and held pieces are blocked, the rest is released.",
-      "HOLD": "The whole batch is blocked (quarantine) until QC decides. It can't be shipped.",
-      "REJECT": "The whole batch is rejected and can never be shipped."
-    },
-    "dept": {
-      "PRODUCTION": "Production",
-      "SERVICE": "Technical service",
-      "QC": "Quality control",
-      "WAREHOUSE": "Warehouse"
-    },
-    "issueDone": {
-      "submit": "Submitted for verification.",
-      "resolve": "Issue resolved.",
-      "reopen": "Issue reopened."
-    },
-    "continuesIssue": "This decision continues open issue {issue}.",
-    "addNewDefect": "+ It's a different defect — record it",
-    "searchEntries": "Product code or name…",
-    "last14": "All (last 14 days)",
-    "producedInEntry": "{n} pcs produced in this entry",
-    "alreadyRejected": "{n} pcs already rejected",
-    "effectReject": "{n} pcs will be removed from stock and the entry marked Rejected.",
-    "effectApprove": "No defects: the entry will be marked Approved.",
-    "saveReject": "Reject {n} pcs",
-    "saveApprove": "Approve",
-    "countsSimple": "{inspected} inspected · {rejected} rejected",
-    "whichMachine": "Which machine?"
-  },
   "wh": {
-    "ledgerNote": "Products go up from daily production; stickers and materials go up when received. Everything goes down when used, taken out or rejected. Totals can't be typed in.",
-    "searchStock": "Batch, product or order…",
-    "noStock": "No products match.",
-    "adjustTitle": "Stock adjustment",
-    "adjustHint": "For counts, damage or scrapping rejected goods. Every adjustment is logged with your name and reason.",
-    "saveAdjustment": "Save adjustment",
-    "stockState": "Stock state",
-    "adjustQty": "Quantity + / −",
-    "adjustKind": "Type",
-    "nothingAwaiting": "Nothing is waiting for receipt.",
-    "receive": "Receive",
-    "receipt": "Receipt",
+    "noStock": "No items match.",
     "by": "By",
     "allTypes": "All movement types",
     "type": "Type",
-    "newLocation": "New storage location",
-    "locationName": "Location name",
-    "receiptsCount": "{n} receipts",
-    "receiveTitle": "Receive finished goods",
-    "received": "Received",
-    "receivedQuarantine": "{number} saved — {n} pcs went to quarantine because of the batch's QC status.",
-    "waiting": "{n} pcs waiting",
-    "willQuarantine": "will be placed in quarantine",
-    "qtyReceived": "Quantity received",
-    "location": "Location",
-    "overReason": "Why is the count higher than production reported?",
-    "overHint": "Production reported {n} pcs still to receive.",
-    "overBlocked": "Only {n} pcs are waiting. A supervisor must approve a higher count.",
-    "confirmReceipt": "Confirm receipt",
-    "kind": {
-      "COUNT": "Count correction",
-      "DAMAGE": "Damaged",
-      "SCRAP": "Scrapped",
-      "OTHER": "Other"
-    },
     "totalPieces": "Pieces in stock",
-    "productsInStock": "Products in stock",
-    "goingOut": "Going out",
-    "showEmpty": "Show products with no stock",
-    "outSaved": "Saved: {n} products, {pcs} pieces went out.",
     "reference": "Reference (optional)",
     "referenceHint": "e.g. order number, truck or person",
-    "saveOut": "Take out {n} products · {pcs} pcs",
-    "adjustQtyHint": "Positive adds pieces, negative removes them (e.g. −20).",
-    "viewEntry": "View entry",
-    "moreInReport": "Showing the latest 300. Use the Stock movements report for older ones.",
+    "moreInReport": "Showing the latest 300. Use the daily in/out report for older ones.",
     "mv": {
       "PRODUCTION": "Produced",
-      "QC_REJECT": "QC rejected",
-      "OUT": "Out",
-      "ADJUST": "Adjustment",
-      "RECEIVE": "Received",
       "USE": "Used by production",
-      "INPUT": "Input",
-      "OUTPUT": "Output",
+      "INPUT": "In",
+      "OUTPUT": "Out",
       "BUY": "Bought",
       "SELL": "Sold"
     },
     "tab": {
-      "stock": "Products",
       "movements": "Movements",
-      "stickers": "Labels",
-      "materials": "Raw materials",
-      "packaging": "Packaging"
+      "materials": "Ingredients & production items",
+      "products": "Finished products"
     },
-    "receiveMode": "Received (in)",
-    "useMode": "Used (out)",
     "filterItems": "Filter by name or code…",
     "onlyInStock": "Only items in stock",
-    "receivedSaved": "Saved: {n} items received.",
-    "usedSaved": "Saved: {n} items used.",
     "item": "Item",
     "used": "Used",
-    "receiveRefHint": "e.g. supplier, invoice number",
-    "useRefHint": "e.g. machine, order or person",
-    "saveReceive": "Save receipt · {n} items",
-    "saveUse": "Save use · {n} items",
     "itemsN": "Items",
     "withStock": "Items in stock",
     "totalKg": "Total in kg",
-    "noStickers": "No labels yet. Add them with New item or Import from Excel.",
-    "noMaterials": "No raw materials yet. Add them with New item or Import from Excel.",
-    "noPackaging": "No packaging items yet. Add them with New item or Import from Excel.",
-    "readOnlyNote": "Stock on hand. It changes only through Stock Movements (input, output, buy, sell) and daily production."
+    "noMaterials": "No ingredients or production items yet. Add them with New ingredient / item.",
+    "readOnlyNote": "Stock on hand. It only changes through stock documents (in, out, buy, sell) and production — and it never goes below zero.",
+    "recordIn": "Record incoming",
+    "recordOut": "Record outgoing",
+    "dailyReport": "Daily in/out report",
+    "productsN": "Products",
+    "outOfStock": "Out of stock",
+    "noProducts": "No finished products yet. Add them on Products & Recipes.",
+    "cartonSplit": "{c} cartons + {p} pcs"
   },
   "rep": {
     "intro": "Live figures from the factory's records. Pick a report, set the dates and filters, then export to Excel (CSV) or PDF.",
@@ -1044,43 +513,17 @@
     "sec": {
       "production": "Production",
       "orders": "Orders",
-      "service": "Machines & maintenance",
-      "quality": "Quality",
       "warehouse": "Warehouse",
       "money": "Money"
     },
     "r": {
       "production": {
-        "title": "Production output",
-        "desc": "Pieces produced and rejected by day, week, month, product or shift."
-      },
-      "maintenance": {
-        "title": "Maintenance requests",
-        "desc": "Requests raised, their status and how long repairs took."
-      },
-      "mold-changes": {
-        "title": "Mold changes",
-        "desc": "Every mold removed or installed, with time taken and technician."
-      },
-      "quality": {
-        "title": "Rejection rates",
-        "desc": "Inspections, rejected pieces and rejection rates by product."
-      },
-      "defects": {
-        "title": "Quality defects",
-        "desc": "Quality issues by defect type and severity."
-      },
-      "corrective": {
-        "title": "Corrective actions",
-        "desc": "Every corrective action recorded against a quality issue."
-      },
-      "movements": {
-        "title": "Stock movements",
-        "desc": "Every stock change: produced, QC rejected, out and adjustments."
+        "title": "Production & loss",
+        "desc": "Batches, pieces, expected pieces and loss by day, week, month or product."
       },
       "production-entries": {
-        "title": "Daily production entries",
-        "desc": "Every entry with day, shift, quantity and QC result."
+        "title": "Production runs",
+        "desc": "Every production entry: batches, pieces, loss and who entered it."
       },
       "orders": {
         "title": "Orders",
@@ -1090,10 +533,6 @@
         "title": "Ordered vs. stock",
         "desc": "For each product in open orders: pieces ordered, in stock and still to make."
       },
-      "stock": {
-        "title": "Stock by product",
-        "desc": "Pieces in, out and in stock for each product."
-      },
       "trade": {
         "title": "Buying and selling",
         "desc": "Every bought and sold item with supplier/customer, price and total in IQD, USD or EUR."
@@ -1101,22 +540,23 @@
       "cash": {
         "title": "Safe: money in and out",
         "desc": "Every movement of money with category, person and totals per currency."
+      },
+      "consumption": {
+        "title": "What production used",
+        "desc": "Ingredients and packaging taken from stock by production in the period."
+      },
+      "warehouse-daily": {
+        "title": "Warehouse daily in / out",
+        "desc": "Opening stock, in, out and closing stock per item — or every movement — by date, item, section, direction, employee and paper number."
       }
     },
     "group": {
       "day": "Day",
       "week": "Week starting",
       "month": "Month",
-      "machine": "Machine",
       "product": "Product",
-      "shift": "Shift",
-      "category": "Reason",
-      "list": "Every stop"
-    },
-    "shift": {
-      "A": "Shift A (07–15)",
-      "B": "Shift B (15–23)",
-      "C": "Shift C (23–07)"
+      "item": "Per item (opening · in · out · closing)",
+      "movement": "Every movement"
     },
     "outcome": {
       "ON_TIME": "On time",
@@ -1131,10 +571,7 @@
       "groupBy": "Group by",
       "allCustomers": "All customers",
       "allProducts": "All products",
-      "allMachines": "All machines",
-      "allPriorities": "All priorities",
       "allCategories": "All reasons",
-      "allSeverities": "All severities",
       "allTypes": "All movement types",
       "defaultStatus": "All",
       "period": "Period: {from} – {to}",
@@ -1145,12 +582,18 @@
         "thisMonth": "This month",
         "lastMonth": "Last month",
         "thisYear": "This year"
-      }
+      },
+      "allSections": "Both sections",
+      "allItems": "All items",
+      "direction": "In / out",
+      "inAndOut": "In and out",
+      "employee": "Employee",
+      "allEmployees": "All employees",
+      "typeAndEnter": "Type, then Enter"
     },
     "col": {
       "accepted": "Accepted",
       "achieved": "Achieved",
-      "actionTaken": "Action taken",
       "actualEnd": "Actual end",
       "assigned": "Assigned to",
       "available": "Available",
@@ -1161,12 +604,9 @@
       "completed": "Completed",
       "confirmedBy": "Dispatched by",
       "created": "Raised",
-      "critical": "Critical",
       "customer": "Customer",
       "daysLate": "Days late",
       "daysOverdue": "Days overdue",
-      "defectRate": "Defect rate",
-      "defectType": "Defect type",
       "defective": "Defective",
       "delPct": "Delivered",
       "deliveredOn": "Delivered on",
@@ -1175,31 +615,15 @@
       "due": "Requested date",
       "ended": "Ended",
       "events": "Stops",
-      "good": "Good pieces",
       "held": "Held",
       "holdDecisions": "Hold / reject decisions",
       "hours": "Hours",
-      "hoursToFix": "Hours to fix",
-      "inspected": "Inspected",
-      "inspections": "Inspections",
-      "issue": "Issue",
-      "issueStatus": "Issue status",
-      "issues": "Issues",
-      "job": "Job",
       "jobs": "Jobs",
       "lastShipment": "Last shipment",
       "late": "Late",
       "line": "Line",
       "location": "Location",
       "longest": "Longest stop",
-      "machine": "Machine",
-      "machineDown": "Machine down",
-      "major": "Major",
-      "minor": "Minor",
-      "minutes": "Minutes",
-      "mold": "Mold",
-      "moldInstalled": "Mold installed",
-      "moldRemoved": "Mold removed",
       "movement": "Movement",
       "order": "Order",
       "ordered": "Ordered",
@@ -1207,7 +631,6 @@
       "pieces": "Pieces",
       "planned": "Planned",
       "plannedEnd": "Planned end",
-      "preventive": "Preventive",
       "priority": "Priority",
       "prodPct": "Produced",
       "produced": "Produced",
@@ -1217,40 +640,25 @@
       "reason": "Reason",
       "receipt": "Receipt",
       "received": "Received",
-      "rejected": "Rejected",
-      "rejectionRate": "Rejection rate",
-      "request": "Request",
-      "resolved": "Resolved",
-      "serviceReport": "Service report",
-      "severity": "Severity",
-      "share": "Share",
-      "shift": "Shift",
       "shipment": "Shipment",
       "shipped": "Shipped",
       "started": "Started",
       "status": "Status",
       "stockState": "Stock state",
-      "technician": "Technician",
       "title": "Problem",
       "toDeliver": "Left to deliver",
       "toProduce": "Left to produce",
       "totalMade": "Total made",
-      "unresolved": "Unresolved",
       "variance": "Difference",
       "vehicle": "Vehicle",
       "when": "Date & time",
-      "adjusted": "Adjusted",
       "day": "Day",
       "entries": "Entries",
-      "inProduced": "Produced (in)",
       "inStock": "In stock",
       "inStockNow": "In stock now",
       "madeInPeriod": "Made in period",
       "openOrders": "Open orders",
-      "outRejected": "QC rejected",
-      "outShipped": "Went out",
       "products": "Products",
-      "qc": "QC",
       "reference": "Reference",
       "stillToMake": "Still to make",
       "document": "Document",
@@ -1265,41 +673,37 @@
       "moneyIn": "In",
       "moneyOut": "Out",
       "discount": "Discount",
-      "safe": "Safe"
+      "safe": "Safe",
+      "expected": "Expected",
+      "lost": "Lost",
+      "lossPct": "Loss",
+      "item": "Item",
+      "used": "Used",
+      "unit": "Unit",
+      "section": "Section",
+      "opening": "Opening",
+      "in": "In",
+      "out": "Out",
+      "closing": "Closing"
     },
     "kpi": {
       "achievement": "Plan achieved",
-      "actions": "Corrective actions",
       "adjustments": "Adjustments",
-      "avgChangeMinutes": "Avg. minutes per change",
       "avgDaysLate": "Avg. days late",
       "avgDaysOverdue": "Avg. days overdue",
-      "avgHoursToFix": "Avg. hours to fix",
       "avgPerDay": "Good pieces per day",
-      "breakdownHours": "Breakdown hours",
-      "changeHours": "Hours spent changing",
       "completionRate": "Completion rate",
-      "critical": "Critical",
       "customersServed": "Customers",
-      "defectRate": "Defect rate",
       "defectivePcs": "Defective pieces",
       "delayedOrders": "Delayed orders",
       "deliveredShare": "Pieces delivered",
-      "downHours": "Downtime hours",
       "events": "Stops",
       "fullyDelivered": "Fully delivered",
       "goodPcs": "Good pieces",
-      "inspectedPcs": "Pieces inspected",
-      "inspections": "Inspections",
-      "issues": "Quality issues",
-      "issuesCovered": "Issues worked on",
-      "issuesResolved": "Issues resolved",
       "jobs": "Jobs",
       "judged": "Orders due",
       "lateJobs": "Jobs late",
       "lateOrOverdue": "Late or overdue",
-      "machineDownRequests": "Machine-down requests",
-      "moldChanges": "Mold changes",
       "movements": "Movements",
       "onTime": "On time",
       "onTimeRate": "On-time rate",
@@ -1316,20 +720,12 @@
       "quarantinePcs": "Into quarantine",
       "receipts": "Receipts",
       "receivedPcs": "Pieces received",
-      "rejectedPcs": "Pieces rejected",
-      "rejectionRate": "Rejection rate",
-      "requests": "Requests",
-      "resolvedRate": "Resolved",
       "shipments": "Shipments",
       "shippedPcs": "Pieces shipped",
       "stillOpen": "Still open",
-      "unresolved": "Unresolved",
       "urgentDelayed": "Urgent among them",
       "entries": "Entries",
-      "notInspected": "Not inspected",
-      "outPcs": "Pieces out",
       "productsOrdered": "Products ordered",
-      "stockNow": "Pieces in stock now",
       "boughtIqd": "Bought (IQD)",
       "boughtUsd": "Bought (USD)",
       "soldIqd": "Sold (IQD)",
@@ -1341,31 +737,32 @@
       "inEur": "In (EUR)",
       "outEur": "Out (EUR)",
       "boughtEur": "Bought (EUR)",
-      "soldEur": "Sold (EUR)"
+      "soldEur": "Sold (EUR)",
+      "batches": "Batches",
+      "lostPcs": "Pieces lost",
+      "lossRate": "Loss rate",
+      "itemsUsed": "Items used",
+      "items": "Items",
+      "itemsWithIn": "Items that came in",
+      "itemsWithOut": "Items that went out",
+      "outOfStockAtEnd": "Out of stock at the end",
+      "inLines": "In lines",
+      "outLines": "Out lines"
     },
     "chartMax": "Highest: {v}"
   },
   "search": {
     "title": "Search",
-    "hint": "Find any order, product, label, material, machine, mold, quality issue, maintenance request or stock movement.",
+    "hint": "Find any order, product, ingredient, production run, stock document, customer or safe entry.",
     "typeMore": "Type at least 2 characters. Typing an exact number (like ORD-2026-0001) opens that record directly.",
     "none": "Nothing found for \"{q}\".",
     "kind": {
       "orders": "Orders",
       "customers": "Customers",
       "products": "Products & items",
-      "batches": "Batches / lots",
-      "jobs": "Production jobs",
-      "machines": "Machines",
-      "molds": "Molds",
-      "issues": "Quality issues",
-      "inspections": "QC inspections",
-      "requests": "Maintenance requests",
-      "serviceReports": "Service reports",
-      "shipments": "Shipments",
-      "receipts": "Warehouse receipts",
       "stockDocs": "Stock movements",
-      "cashEntries": "Safe"
+      "cashEntries": "Safe",
+      "production": "Production runs"
     }
   },
   "ui": {
@@ -1389,16 +786,8 @@
     "count": "{n} entries",
     "entity": {
       "Order": "Order",
-      "QcInspection": "QC inspection",
-      "QualityIssue": "Quality issue",
-      "MaintenanceRequest": "Maintenance request",
-      "ServiceReport": "Service report",
-      "PreventiveTask": "Preventive task",
       "StockMovement": "Stock",
       "Product": "Product",
-      "Machine": "Machine",
-      "Mold": "Mold",
-      "DefectCategory": "Defect type",
       "User": "Employee",
       "Role": "Role",
       "Report": "Report",
@@ -1411,8 +800,7 @@
       "ExpenseCategory": "Expense category",
       "ReceiptLayout": "Receipt layout",
       "Customer": "Customer",
-      "Safe": "Safe",
-      "Supplier": "Supplier"
+      "Safe": "Safe"
     }
   },
   "sys": {
@@ -1420,12 +808,12 @@
     "resetTitle": "Clear test data before going live",
     "resetIntro": "Use this once, when testing is finished and the factory starts using the system for real. It permanently deletes these records:",
     "kept": "Always kept:",
-    "keptList": "employees and their logins, roles and permissions, departments, defect types and the audit log. Numbering starts again from 0001.",
+    "keptList": "employees and their logins, roles and permissions, departments and the audit log. Numbering starts again from 0001.",
     "scope": "What to delete",
     "scopeOps": "Test transactions only (recommended)",
-    "scopeOpsHint": "Orders, daily production, maintenance, QC and stock. Products, machines and molds stay.",
+    "scopeOpsHint": "Orders, production, stock documents and safe entries. Products and items stay.",
     "scopeAll": "Everything, including master data",
-    "scopeAllHint": "Also deletes {products} products, {machines} machines and {molds} molds.",
+    "scopeAllHint": "Also deletes {products} products and items, and customers.",
     "warning": "This cannot be undone. Make sure a backup exists first (see the backup guide).",
     "typeReset": "Type RESET to confirm",
     "yourPassword": "Your password",
@@ -1440,75 +828,45 @@
     "count": {
       "orders": "Orders",
       "entries": "Production entries",
-      "maintenance": "Maintenance requests",
-      "serviceReports": "Service reports",
-      "inspections": "QC inspections",
-      "issues": "Quality issues",
-      "movements": "Stock movements"
+      "movements": "Stock movements",
+      "documents": "Stock documents",
+      "cash": "Safe entries"
     },
     "itemsTitle": "Replace the item list",
-    "itemsIntro": "Removes every product, sticker and material so a corrected Excel list can be imported in their place. Machines, molds, employees and the audit log stay.",
-    "itemsWarning": "This can't be undone. Keep the Excel file so you can import it again.",
+    "itemsIntro": "Removes every product and item so the list can be entered again from scratch. Employees and the audit log stay.",
+    "itemsWarning": "This can't be undone.",
     "typeDeleteItems": "Type DELETE ITEMS to confirm",
     "itemsButton": "Remove all {n} items",
-    "itemsDone": "{n} items removed. Now import the new list:",
-    "itemsImportNow": "Import from Excel",
+    "itemsDone": "{n} items removed.",
     "itemsUsed": "{n} items are already used by orders, production or stock, so the list can't be removed. Clear the test transactions first (above).",
     "items": {
       "products": "Products",
-      "stickers": "Stickers",
-      "materials": "Materials"
+      "materials": "Ingredients & items"
     }
   },
   "daily": {
-    "title": "Daily production entry",
-    "subtitle": "{date} · type what was produced for each product and save once.",
-    "filter": "Filter products…",
-    "shift": "Shift",
-    "summary": "{n} products · {pcs} pcs · shift {shift}",
-    "saveAll": "Save all",
-    "saved": "Saved {n} products, {pcs} pieces. Stock was updated.",
+    "title": "Production entry",
+    "subtitle": "{date} · per product: batches made and pieces produced.",
+    "summary": "{n} products · {batches} batches · {pcs} pcs",
+    "saveAll": "Save",
+    "saved": "Saved {n} products: {batches} batches, {pcs} pieces. Stock was updated.",
     "inOrders": "In open orders",
-    "alreadyShift": "Already entered (shift {shift})",
-    "produced": "Produced",
-    "onlyOrdered": "Only products in open orders",
-    "noOrdered": "No product is in an open order. Untick the box to see all products.",
-    "shortage": "Saved — but stock was not enough for: {items}. Stock shows minus; the warehouse has been told."
-  },
-  "imp": {
-    "button": "Import from Excel",
-    "title": "Import from Excel",
-    "subtitle": "Add or update many machines, molds and products (labels) at once.",
-    "step1": "1. Download the template",
-    "step1Hint": "An Excel file with three sheets: Machines, Molds and Products. Fill it in, or paste your existing lists into it.",
-    "download": "Download Excel template",
-    "tip1": "One row per label on the Products sheet, with the mold code.",
-    "tip2": "Product code can stay empty — it is created automatically from the mold code.",
-    "tip3": "Importing the same file again updates rows instead of making copies.",
-    "tip4": "Nothing is saved until every row is correct.",
-    "step2": "2. Upload the filled-in file",
-    "choose": "Choose the Excel or CSV file",
-    "check": "Check file",
-    "reading": "Reading…",
-    "new": "New",
-    "updated": "Updated",
-    "unchanged": "Unchanged",
-    "hasErrors": "{n} problems found. Fix them in Excel and check the file again — nothing was saved.",
-    "row": "row {n}",
-    "ready": "The file is correct.",
-    "import": "Import {n} rows",
-    "done": "Imported. Open:",
-    "nothing": "Nothing new to import — everything in the file is already in the system.",
-    "sheet": {
-      "machines": "Machines",
-      "molds": "Molds",
-      "products": "Products / labels",
-      "recipes": "Recipe lines"
-    }
+    "produced": "Pieces produced",
+    "help": "Type the batches made and the pieces that came out. Ingredients are taken by batches, cups/lids/cartons by pieces. If any item is short, nothing is saved and you are told what is missing.",
+    "batches": "Batches",
+    "pcs": "pcs",
+    "perBatch": "{n} pcs per batch",
+    "todayAlready": "Already today",
+    "noRecipe": "No batch recipe yet — add it on the product page first.",
+    "expected": "expected {n}",
+    "lost": "lost {n} ({pct}%)",
+    "over": "{n} more than expected",
+    "notes": "Notes (optional)",
+    "savedLoss": "Loss: {lost} pcs."
   },
   "push": {
     "askTitle": "Get notifications on this device",
-    "askBody": "New orders, production, QC results, stock and breakdowns will pop up even when the app is closed.",
+    "askBody": "New orders, production, stock documents and safe entries will pop up even when the app is closed.",
     "turnOn": "Turn on notifications",
     "turnOff": "Turn off on this device",
     "later": "Not now",
@@ -1518,14 +876,14 @@
     "explain": "Pop-up notifications, also when the app or browser is closed.",
     "devicesN": "Turned on for you on {n} device(s).",
     "test": "Send a test",
-    "testTitle": "Bereket FMS test",
+    "testTitle": "Bereket Dairy test",
     "testBody": "Notifications work on this device.",
     "testSent": "Test sent — it should pop up in a few seconds.",
     "nowOn": "Done — this device will now get notifications.",
     "dismissed": "The browser's question was closed without an answer. Press the button again and choose Allow.",
     "failed": "Couldn't turn notifications on. Try again.",
     "blocked": "Notifications are blocked for this site. Open the browser's site settings (the lock icon next to the address), set Notifications to Allow, then reload. On Android you can also check Settings → Apps → Chrome → Notifications.",
-    "iosInstall": "On iPhone, notifications work only from the installed app: tap Share → Add to Home Screen, open Bereket FMS from the home screen, then turn notifications on here.",
+    "iosInstall": "On iPhone, notifications work only from the installed app: tap Share → Add to Home Screen, open Bereket Dairy from the home screen, then turn notifications on here.",
     "unsupported": "This browser can't receive push notifications. Use Chrome, Edge, Firefox or Safari (installed app on iPhone).",
     "notConfigured": "Push notifications aren't set up on the server yet."
   },
@@ -1559,76 +917,18 @@
     "production": {
       "saved": {
         "title": "Production entered: {pcs} pcs",
-        "body": "{products} products · {day} · shift {shift} · by {by}"
+        "body": "{products} products · {batches} batches · {day} · by {by}"
       },
       "corrected": {
         "title": "Production corrected: {product}",
-        "body": "{before} → {after} pcs · {day} shift {shift} · {reason} · by {by}"
+        "body": "{before} → {after} pcs · {day} · {reason} · by {by}"
       },
       "deleted": {
         "title": "Production entry deleted: {product}",
-        "body": "{before} pcs · {day} shift {shift} · {reason} · by {by}"
-      }
-    },
-    "qc": {
-      "approved": {
-        "title": "QC approved {product}",
-        "body": "{day} · shift {shift} · by {by}"
-      },
-      "rejected": {
-        "title": "QC rejected {pcs} pcs of {product}",
-        "body": "{day} · shift {shift} · removed from stock · by {by}"
-      },
-      "issue": {
-        "title": "Quality issue {number}: {defect} on {product}",
-        "body": "{entry} · {text}"
-      },
-      "critical": {
-        "title": "CRITICAL quality issue {number}: {defect} on {product}",
-        "body": "{entry} · {text}"
-      },
-      "verify": {
-        "title": "{number} is ready for QC verification",
-        "body": "{product} · by {by}"
+        "body": "{before} pcs · {day} · {reason} · by {by}"
       }
     },
     "stock": {
-      "out": {
-        "title": "Goods out: {pcs} pcs",
-        "body": "{products} products · {ref} · by {by}"
-      },
-      "adjusted": {
-        "title": "Stock adjusted: {product} {qty}",
-        "body": "{reason} · by {by}"
-      },
-      "stickersIn": {
-        "title": "Stickers received: {n} items",
-        "body": "{ref} · by {by}"
-      },
-      "materialsIn": {
-        "title": "Materials received: {n} items",
-        "body": "{ref} · by {by}"
-      },
-      "stickersUsed": {
-        "title": "Stickers used: {n} items",
-        "body": "{ref} · by {by}"
-      },
-      "materialsUsed": {
-        "title": "Materials used: {n} items",
-        "body": "{ref} · by {by}"
-      },
-      "shortage": {
-        "title": "Not enough stock for production: {n} items",
-        "body": "{items} now below zero · entered by {by}"
-      },
-      "packagingIn": {
-        "title": "Packaging received: {n} items",
-        "body": "{ref} · by {by}"
-      },
-      "packagingUsed": {
-        "title": "Packaging used: {n} items",
-        "body": "{ref} · by {by}"
-      },
       "docINPUT": {
         "title": "Stock input {number}: {n} items",
         "body": "by {by}"
@@ -1676,90 +976,6 @@
         "body": "{code} · by {by}"
       }
     },
-    "machine": {
-      "added": {
-        "title": "New machine: {name}",
-        "body": "{code} · by {by}"
-      },
-      "removed": {
-        "title": "Machine deleted: {name}",
-        "body": "{code} · by {by}"
-      },
-      "archived": {
-        "title": "Machine archived: {name}",
-        "body": "{code} · by {by}"
-      },
-      "restored": {
-        "title": "Machine restored: {name}",
-        "body": "{code} · by {by}"
-      }
-    },
-    "mold": {
-      "added": {
-        "title": "New mold: {name}",
-        "body": "{code} · by {by}"
-      },
-      "removed": {
-        "title": "Mold deleted: {name}",
-        "body": "{code} · by {by}"
-      },
-      "archived": {
-        "title": "Mold archived: {name}",
-        "body": "{code} · by {by}"
-      },
-      "restored": {
-        "title": "Mold restored: {name}",
-        "body": "{code} · by {by}"
-      }
-    },
-    "labels": {
-      "added": {
-        "title": "{n} labels added to mold {mold}",
-        "body": "by {by}"
-      }
-    },
-    "masterdata": {
-      "imported": {
-        "title": "Excel import: {products} products, {molds} molds, {machines} machines",
-        "body": "by {by}"
-      }
-    },
-    "maintenance": {
-      "new": {
-        "title": "{number}: {machine} — {problem}",
-        "body": "New maintenance request · by {by}"
-      },
-      "newDown": {
-        "title": "Machine {machine} is DOWN — {problem}",
-        "body": "{number} · by {by}"
-      },
-      "completed": {
-        "title": "{number} repair completed",
-        "body": "{problem} — {text}"
-      },
-      "ready": {
-        "title": "{machine} is ready to run again",
-        "body": "{number} · {text}"
-      },
-      "verify": {
-        "title": "{number} is waiting for verification",
-        "body": "{machine} · {problem}"
-      },
-      "reopened": {
-        "title": "{number} reopened",
-        "body": "{machine} · {text} · by {by}"
-      },
-      "assigned": {
-        "title": "{number} assigned to you",
-        "body": "{problem} · by {by}"
-      }
-    },
-    "service": {
-      "report": {
-        "title": "Service report {number}: {machine}",
-        "body": "{work} · by {by}"
-      }
-    },
     "cash": {
       "in": {
         "title": "Money in {number}: {amount}",
@@ -1792,38 +1008,38 @@
     }
   },
   "rc": {
-    "label": "Label",
-    "labelHint": "The product's label: 1 label per piece is taken from stock when production is entered. Choosing it doesn't change the product's name.",
-    "madeOf": "Made of (per piece)",
-    "madeOfHint": "Raw materials and colours in grams per piece; handles and other parts in pieces per piece.",
-    "addMaterial": "Add material / colour / part",
-    "packaging": "Packaging",
-    "packagingHint": "For each carton or nylon: how many products go into one. Started cartons and bags count as used. Nylon kept in kg is turned into kg with its bag weight.",
     "piecesPerCarton": "Pieces in one carton",
-    "addPackaging": "Add carton / nylon",
     "chooseItem": "Choose item…",
-    "gPerPiece": "grams per piece",
-    "pcsPerPiece": "pieces per piece",
-    "bagsPerCarton": "bags per carton",
-    "pcsPerCarton": "per carton",
-    "needWeight": "Set the weight of one bag first",
-    "save": "Save made of & packaging",
-    "saved": "Saved. From now on daily production takes these from stock.",
+    "save": "Save recipe",
+    "saved": "Saved. From now on production takes these from stock.",
     "preview": "What production will use",
     "previewPieces": "pieces",
-    "nothingUsed": "Nothing is taken from stock yet — add a label, materials or packaging.",
-    "inStockOnly": "only {n} in stock",
-    "previewNote": "Unsaved changes are included in the preview.",
-    "productsInOne": "products in one",
-    "packExample": "One holds {n} products",
-    "nameNoLabel": "Only when the product has no label.",
-    "nameWillBe": "Product name (from the label):",
+    "nothingUsed": "Nothing is taken from stock yet — add ingredients or packaging.",
+    "inStockOnly": "only {n} in stock — production would be refused",
+    "previewNote": "Unsaved changes are included in the preview. Production is only saved if every item is in stock.",
     "create": "Create product",
-    "newIntro": "Pick the label first — the name comes from it. Then add what one piece is made of and how it is packed.",
-    "created": "Product created. Daily production will now take its label, materials and packaging from stock.",
+    "newIntro": "Type the product's name, how many pieces one batch gives, and its recipe: ingredients per batch and packaging per piece / carton.",
+    "created": "Product created. Production will now take its ingredients and packaging from stock.",
     "details": "Product",
-    "nameTyped": "Type the product's own name. It never comes from the label (a label's name has \"اتيكيت\" in it).",
-    "onePerPiece": "1 per piece"
+    "batchYield": "Pieces expected from one batch",
+    "batchYieldHint": "Used to show the loss: expected pieces from the batches minus the pieces produced.",
+    "packedInCartons": "Packed in cartons",
+    "cartonsOptional": "Optional. Stock is always kept in pieces; cartons are shown next to it (e.g. 12 cartons + 4 pcs).",
+    "noCartons": "Not in cartons",
+    "batchTitle": "Ingredients per batch",
+    "batchHint": "Milk, sugar, cultures, flavours… the amount in ONE batch, in kg or g (or pieces). Production takes this × the batches made.",
+    "addIngredient": "Add ingredient",
+    "pieceTitle": "Packaging per piece",
+    "pieceHint": "Cups, lids, labels… the amount for ONE piece produced. Production takes this × the pieces made.",
+    "addPieceItem": "Add item per piece",
+    "cartonTitle": "Per carton",
+    "cartonHint": "Cartons, tape… the amount for ONE carton packed. A started carton counts as used.",
+    "addCartonItem": "Add item per carton",
+    "perBatch": "per batch",
+    "perPiece": "per piece",
+    "perCarton": "per carton",
+    "previewBatches": "batches",
+    "cartonsUsed": "{n} cartons"
   },
   "sd": {
     "intro": "Every manual change of stock: input, output, buy and sell. Production and what it uses still change stock automatically.",
@@ -1848,9 +1064,7 @@
     "lineTotal": "Total",
     "total": "Total",
     "addLine": "Add item",
-    "willGoMinus": "stock will go below zero",
     "saved": "{number} saved. Stock has been updated.",
-    "minusNow": "Below zero now: {items}. Check the count.",
     "stockNow": "Stock now",
     "viewDoc": "View document",
     "sold": "Sold",
@@ -1875,8 +1089,8 @@
       "SELL": "Save sale"
     },
     "help": {
-      "INPUT": "Items coming in without money: returns, transfers, count corrections.",
-      "OUTPUT": "Items going out without money: damage, samples, transfers, count corrections.",
+      "INPUT": "Items coming into the warehouse without money: opening stock, returns, transfers, count corrections.",
+      "OUTPUT": "Items leaving the warehouse without money: damaged, expired, samples, returns to supplier, transfers, count corrections.",
       "BUY": "Items bought from a customer account, with the price in IQD, USD or EUR. A discount only lowers what is owed to them.",
       "SELL": "Items sold to a customer, with the price in IQD, USD or EUR. Link it to an order if there is one."
     },
@@ -1884,9 +1098,11 @@
       "RETURN": "Return",
       "TRANSFER": "Transfer",
       "COUNT": "Count correction",
-      "DAMAGE": "Damage / scrap",
+      "DAMAGE": "Damaged",
       "SAMPLE": "Sample",
-      "OTHER": "Other"
+      "OTHER": "Other",
+      "OPENING": "Opening stock",
+      "EXPIRED": "Expired"
     },
     "eur": "Euro",
     "phone": "Phone",
@@ -1908,7 +1124,15 @@
     "editing": "You are changing {number}. It keeps its number; stock, the customer's balance and batches follow the new values.",
     "editReason": "Why is it changed?",
     "editPaidHint": "Money already paid stays as it is; change a payment on its own page.",
-    "saveChanges": "Save changes"
+    "saveChanges": "Save changes",
+    "source": "From (supplier / source)",
+    "destination": "To (destination / recipient)",
+    "reference": "Paper number",
+    "referenceHint": "Delivery note, slip or other document number (optional).",
+    "noDoubleIn": "Bought goods are added by the accountant's purchase (Buy) — don't enter them here too.",
+    "noDoubleOut": "Ingredients and packaging used by production leave automatically with the production entry — don't enter them here too.",
+    "notEnough": "Not enough stock: only {n} {unit}. This can't be saved.",
+    "papers": "Scanned papers"
   },
   "cash": {
     "intro": "Money in each safe, per currency. Sales and money put in add to a safe; purchases and expenses take from it.",
@@ -2177,25 +1401,24 @@
     "outOfSafe": "Paid from safe"
   },
   "item": {
-    "newButton": "New item",
-    "newTitle": "New label, raw material or packaging",
-    "intro": "Choose what it is, type its name and how it is counted, and its cost.",
-    "whatIsIt": "What is it?",
+    "newButton": "New ingredient / item",
+    "newTitle": "New ingredient or production item",
+    "intro": "Milk, cultures, sugar, flavours, cups, lids, labels, cartons… Type its name, how it is counted (kg or pieces) and its cost.",
     "name": "Name",
     "name2": "Second name",
     "code": "Code",
     "codeHint": "Leave empty for an automatic code.",
     "unit": "Counted in",
     "unitPcs": "Pieces",
-    "unitKg": "Kilograms (kg)",
-    "bagWeight": "Weight of one bag / piece (kg)",
-    "bagWeightHint": "For packaging bought by kg but used by the piece (e.g. nylon bags).",
+    "unitKg": "Kilograms (kg) — can be typed in grams",
     "save": "Save item",
-    "created": "{code} saved. It is now in the warehouse and can be used in products, buying and stock movements.",
+    "created": "{code} saved. It is now in the warehouse and can be used in recipes, buying and stock movements.",
     "section": "Section",
     "allSections": "All",
     "edit": "Edit item",
-    "unitLocked": "Stock already moved in or out, so the unit can't change."
+    "unitLocked": "Stock already moved in or out, so the unit can't change.",
+    "unitHint": "Weights are kept in kg to 1 mg, and can be typed in kg or g everywhere. Pieces are always whole.",
+    "codeAuto": "Automatic if empty"
   },
   "cost": {
     "title": "Starting cost",
@@ -2215,9 +1438,9 @@
     "change": "Change cost",
     "save": "Save cost",
     "productTitle": "Product cost",
-    "productHint": "For the number of pieces made: the same amounts production takes from stock — full cartons and bags (a started one counts), nylon by its kg — costed from the oldest batches still in stock (then at the latest cost), in IQD.",
+    "productHint": "For a run of B batches giving N pieces: the same amounts production takes from stock — ingredients × batches, packaging × pieces, whole cartons — costed from the oldest batches still in stock (then at the latest cost), in IQD. Losses are inside the cost per piece.",
     "missing": "No cost yet for: {items} — the total doesn't include them.",
-    "noRecipe": "Nothing is set yet for what this product is made of and packed in, so its cost can't be worked out.",
+    "noRecipe": "This product has no recipe yet, so its cost can't be worked out.",
     "perPiece": "Per piece",
     "unitCost": "Cost per unit (IQD)",
     "cost": "Cost (IQD)",
@@ -2227,48 +1450,22 @@
     "stockValue": "Stock value",
     "tableHint": "Cost per unit = the batches still in stock (each at its own cost) ÷ the stock. With no stock: the latest cost. * = some of it has no cost yet.",
     "why": {
-      "label": "label",
-      "made": "made of",
-      "pack": "packaging"
+      "batch": "per batch",
+      "piece": "per piece",
+      "carton": "per carton"
     },
     "piecesMade": "Pieces made",
-    "lastProduction": "Last production of this product",
-    "typeQty": "Type any quantity",
+    "lastProduction": "Last production run of this product",
+    "typeQty": "Type any batches and pieces",
     "used": "Used for {n} pcs",
     "runTotal": "Total for {n} pieces (IQD)",
     "onePieceCost": "Cost of one piece",
     "colValue": "Value (IQD)",
     "valueOf": "Show the value of",
     "valueHint": "In IQD: what is in stock × its cost. {n} items in stock.",
-    "valueNoCost": "{n} of them have no cost yet and are not counted"
-  },
-  "iw": {
-    "button": "Items workbook (Excel)",
-    "title": "Items workbook",
-    "subtitle": "All labels, raw materials, packaging and products in one Excel file: fill in what is missing, upload it back.",
-    "step1": "1. Download the workbook",
-    "step1Hint": "It already lists every item in the system with what is known about it, its stock now and its cost.",
-    "download": "Download items workbook",
-    "step2": "2. Upload the filled workbook",
-    "tip1": "Sheets: Labels, Raw materials, Packaging, Products, Made of & packaging. Add new items in new rows; leave Code empty for an automatic code.",
-    "tip2": "Rows are matched on their code. Empty cells never delete anything; grey columns are not read.",
-    "tip3": "Cost: price of 1 piece or 1 kg + currency; for USD / EUR also today's rate to IQD.",
-    "tipNoCost": "Costs are left out: your role doesn't see money.",
-    "tip4": "Counted stock: what is on the shelf now. The stock is set to it with one Input / Output count document. Empty = stock unchanged.",
-    "tip5": "Check file shows what will change and any mistakes by row before anything is saved.",
-    "costs": "Costs set or changed: {n}",
-    "stock": "Stock count: {up} items go up, {down} go down",
-    "save": "Save everything",
-    "done": "Saved.",
-    "fromImport": "To fill in labels, raw materials, packaging, costs and stock for items already in the system, use the",
-    "sheet": {
-      "STICKER": "Labels",
-      "MATERIAL": "Raw materials",
-      "PACKAGING": "Packaging",
-      "PRODUCT": "Products",
-      "RECIPE": "Made of & packaging"
-    },
-    "choose": "Choose the filled workbook (.xlsx)"
+    "valueNoCost": "{n} of them have no cost yet and are not counted",
+    "usedRun": "Used in this run",
+    "runTotal2": "Total for {b} batches → {n} pieces (IQD)"
   },
   "lot": {
     "title": "Batches (oldest used first)",
@@ -2285,7 +1482,7 @@
     "usedUp": "used up",
     "next": "used next",
     "opening": "Stock on {date} (starting cost)",
-    "production": "Production {day} · shift {shift}",
+    "production": "Production {day} · {batches} batches",
     "productionGone": "Production (entry removed)",
     "runCost": "Real cost: {piece} IQD / pc · run {run} IQD",
     "inputCurrency": "Cost currency (optional)",
@@ -2300,7 +1497,7 @@
       "OTHER": "Added (starting cost)",
       "OPENING": "Opening stock",
       "PRODUCTION": "Production",
-      "SHORT": "Taken with no stock"
+      "SHORT": "Taken with no stock (should never happen)"
     }
   }
 }

@@ -35,11 +35,12 @@ export default function MasterList({
   canArchive,
   newLabel,
 }: {
-  kind: "product" | "machine" | "mold";
+  kind: "product";
   rows: MasterRow[];
-  fields: FieldDef[];
+  fields?: FieldDef[];
   editFields?: FieldDef[];
-  action: (prev: unknown, fd: FormData) => Promise<Result>;
+  /** Needed only for the small in-place form (rows without an editHref, or creating here). */
+  action?: (prev: unknown, fd: FormData) => Promise<Result>;
   canCreate: boolean;
   canEdit: boolean;
   canArchive: boolean;
@@ -66,7 +67,7 @@ export default function MasterList({
   return (
     <div className="space-y-4">
       {error && <Alert>{error}</Alert>}
-      {canCreate &&
+      {canCreate && action && fields &&
         (mode === "new" ? (
           <Card>
             <h2 className="mb-3 font-semibold">{newLabel}</h2>
@@ -81,9 +82,9 @@ export default function MasterList({
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {rows.map((r) =>
-            mode === r.id ? (
+            mode === r.id && action && (editFields ?? fields) ? (
               <Card key={r.id} className="md:col-span-2 xl:col-span-3">
-                <RecordForm fields={editFields ?? fields} action={action} initial={r.initial} hidden={{ id: r.id }} onDone={() => setMode(null)} />
+                <RecordForm fields={(editFields ?? fields)!} action={action} initial={r.initial} hidden={{ id: r.id }} onDone={() => setMode(null)} />
               </Card>
             ) : (
               <Card key={r.id} className={r.archived ? "opacity-60" : ""}>
@@ -130,7 +131,7 @@ export default function MasterList({
                       </Button>
                     )}
                     {canArchive && (
-                      <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950" onClick={() => remove(r)} disabled={pending}>
+                      <Button size="sm" variant="ghost" onClick={() => remove(r)} disabled={pending}>
                         <Trash2 className="size-3.5" /> {t("delete")}
                       </Button>
                     )}

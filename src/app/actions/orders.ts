@@ -160,7 +160,7 @@ export async function deleteOrderAction(orderId: string, reason?: string) {
 }
 
 const commentSchema = z.object({
-  entityType: z.enum(["Order", "MaintenanceRequest", "QualityIssue"]),
+  entityType: z.enum(["Order"]),
   entityId: z.string().min(1),
   body: z.string().trim().min(1, "Write a comment").max(4000),
 });
@@ -169,16 +169,9 @@ export async function addCommentAction(_: unknown, fd: FormData) {
   return run(async () => {
     const me = await requireUser();
     const v = commentSchema.parse(formObject(fd));
-    const perm = ({ Order: "orders:view", MaintenanceRequest: "maintenance:view", QualityIssue: "qc:view" } as const)[v.entityType];
-    if (!me.permissions.has(perm)) throw new UserError("You don't have permission to comment here.");
-    const exists =
-      v.entityType === "Order" ? await db.order.count({ where: { id: v.entityId } })
-      : v.entityType === "MaintenanceRequest" ? await db.maintenanceRequest.count({ where: { id: v.entityId } })
-      : await db.qualityIssue.count({ where: { id: v.entityId } });
-    if (!exists) throw new UserError("That record no longer exists.");
+    if (!me.permissions.has("orders:view")) throw new UserError("You don't have permission to comment here.");
+    if (!(await db.order.count({ where: { id: v.entityId } }))) throw new UserError("That record no longer exists.");
     await db.comment.create({ data: { ...v, authorId: me.id } });
-    revalidatePath(
-      v.entityType === "Order" ? `/orders/${v.entityId}` : v.entityType === "MaintenanceRequest" ? `/service/requests/${v.entityId}` : `/qc/issues/${v.entityId}`,
-    );
+    revalidatePath(`/orders/${v.entityId}`);
   });
 }

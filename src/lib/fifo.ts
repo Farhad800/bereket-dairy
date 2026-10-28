@@ -7,7 +7,7 @@ import { db, type Tx } from "./db";
  *
  * Every purchase line is a batch of that item at its own cost: price × the purchase's rate, in IQD
  * (the discount never changes it). Every production run is a batch of that product whose cost is the
- * real cost of the batches its label, materials and packaging were taken from, ÷ the pieces made.
+ * real cost of the batches its ingredients and packaging were taken from, ÷ the pieces made.
  * Whatever leaves the warehouse (production use, sale, waste, count down, out) is taken from the
  * oldest batch first. Production corrections give back to the batches they took from.
  *
@@ -15,10 +15,12 @@ import { db, type Tx } from "./db";
  * price and its document's rate, so the batches are rebuilt from the history every time.
  *
  * Stock that was there before FIFO_START is one opening batch at the item's "starting cost"
- * (the cost typed on the item; for a product, its recipe at those starting costs). Stock taken
- * when no batch is left is costed at the batch that later fills the gap, else the latest known cost.
+ * (the cost typed on the item; for a product, its recipe at those starting costs).
+ * Dairy: stock can never go below zero (lib/stock.ts), so "taken when no batch is left" does not happen;
+ * the gap handling below stays only as a safety net and never decides a normal cost.
  */
-export const FIFO_START = new Date(process.env.FIFO_START ?? "2026-10-28T00:00:00+03:00");
+// Dairy: a new database, so every movement is part of a batch from the start (FIFO_START can move it later if needed).
+export const FIFO_START = new Date(process.env.FIFO_START ?? "2000-01-01T00:00:00+03:00");
 
 export type LotSource = "OPENING" | "BUY" | "INPUT" | "PRODUCTION" | "RETURN" | "OTHER" | "SHORT";
 export type Lot = {

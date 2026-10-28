@@ -14,17 +14,22 @@ import SafeSelect, { fitSafe, type SafeOpt } from "../../cash/safe-select";
 
 type Item = { id: string; code: string; name: string; name2: string | null; unit: string; kind: string; stock: number };
 type Order = { id: string; number: string; lines: { productId: string; quantity: number }[] };
-type Line = { key: number; itemId: string; qty: string; price: string; discKind: "PERCENT" | "AMOUNT"; disc: string };
+/** u: the unit the quantity is typed in — g is turned into kg before saving (stock is kept in kg, to 1 mg). */
+type Line = { key: number; itemId: string; qty: string; u: "kg" | "g" | "pcs"; price: string; discKind: "PERCENT" | "AMOUNT"; disc: string };
 type Cur = "IQD" | "USD" | "EUR";
 /** A saved receipt opened for editing (same number). */
 export type EditDoc = {
-  id: string; number: string; type: DocType; reason: string; customerId: string; phone: string; supplierRef: string; delivery: string;
+  id: string; number: string; type: DocType; reason: string; party: string; reference: string; customerId: string; phone: string; supplierRef: string; delivery: string;
   currency: Cur; rate: string; orderId: string; note: string; invKind: "PERCENT" | "AMOUNT"; invDisc: string; paid: number;
   lines: { itemId: string; qty: string; price: string; discKind: "PERCENT" | "AMOUNT"; disc: string }[];
 };
 export type CustomerOpt = { id: string; code: string; name: string; phone: string | null; address: string | null; balance: Record<Cur, number> };
 const disc = (kind: "PERCENT" | "AMOUNT", v: string): Discount => (Number(v) > 0 ? { kind, value: Number(v) } : null);
-const REASONS = ["RETURN", "TRANSFER", "COUNT", "DAMAGE", "SAMPLE", "OTHER"] as const;
+/** Input reasons never include "bought" (the accountant's Buy adds bought goods) — so nothing is counted twice. */
+const IN_REASONS = ["OPENING", "RETURN", "TRANSFER", "COUNT", "OTHER"] as const;
+/** Output reasons never include "to production" (production takes its ingredients automatically). */
+const OUT_REASONS = ["RETURN", "TRANSFER", "COUNT", "DAMAGE", "EXPIRED", "SAMPLE", "OTHER"] as const;
+const kgOf = (l: { qty: string; u: string }) => (l.u === "g" ? Math.round((Number(l.qty) / 1000) * 1e6) / 1e6 : Number(l.qty) || 0);
 
 /** One Input / Output / Buy / Sell document with any number of lines. */
 export default function DocForm({ allowed, initialType, initialOrder, items, orders, customers = [], initialCustomer = "", safes = [], canCost = false, edit }: {
@@ -40,6 +45,8 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
   const router = useRouter();
   const [type, setType] = useState<DocType>(edit?.type ?? initialType);
   const [reason, setReason] = useState(edit?.reason ?? "");
+  const [party, setParty] = useState(edit?.party ?? "");
+  const [reference, setReference] = useState(edit?.reference ?? "");
   const [invoiceNo, setInvoiceNo] = useState(edit?.supplierRef ?? "");
   const [phone, setPhone] = useState(() => edit?.phone ?? customers.find((c) => c.id === initialCustomer)?.phone ?? "");
   const [currency, setCurrency] = useState<"IQD" | "USD" | "EUR">(edit?.currency ?? "IQD");
@@ -60,8 +67,12 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
   const [invDisc, setInvDisc] = useState(edit?.invDisc ?? "");
   // Keys start at 0 on every render tree, so server and browser HTML match (hydration).
   const seq = useRef(edit ? edit.lines.length : 0);
-  const blank = (): Line => ({ key: ++seq.current, itemId: "", qty: "", price: "", discKind: "PERCENT", disc: "" });
-  const [lines, setLines] = useState<Line[]>(() => edit?.lines.length ? edit.lines.map((l, i) => ({ key: i, ...l })) : [{ key: 0, itemId: "", qty: "", price: "", discKind: "PERCENT", disc: "" }]);
+  const blank = (): Line => ({ key: ++seq.current, itemId: "", qty: "", u: "pcs", price: "", discKind: "PERCENT", disc: "" });
+  const [lines, setLines] = useState<Line[]>(() => edit?.lines.length ? edit.lines.map((l, i) => {
+    const kg = items.find((x) => x.id === l.itemId)?.unit.toLowerCase() === "kg";
+    const g = kg && Number(l.qty) < 1;
+    return { key: i, ...l, qty: g ? String(Math.round(Number(l.qty) * 1e9) / 1e6) : l.qty, u: kg ? (g ? "g" : "kg") : "pcs" };
+  }) : [{ key: 0, itemId: "", qty: "", u: "pcs", price: "", discKind: "PERCENT", disc: "" }]);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
@@ -70,15 +81,15 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
   const costIn = type === "INPUT" && canCost; // optional cost per line on an Input
   const priced = money || costIn;
 
-  // Section of the warehouse to pick from (Products · Labels · Raw materials · Packaging); a chosen line keeps its item.
-  const [section, setSection] = useState<"ALL" | "PRODUCT" | "STICKER" | "MATERIAL" | "PACKAGING">("ALL");
+  // Section of the warehouse to pick from (Finished products · Ingredients & production items); a chosen line keeps its item.
+  const [section, setSection] = useState<"ALL" | "PRODUCT" | "MATERIAL">("ALL");
   const options = useMemo(() => items.map((i) => ({ value: i.id, label: i.name, kind: i.kind, hint: `${i.code} · ${t(`md.kind.${i.kind}`)}${i.name2 ? ` · ${i.name2}` : ""}` })), [items, t]);
   const optionsFor = (itemId: string) => options.filter((o) => section === "ALL" || o.kind === section || o.value === itemId);
   const set = (key: number, patch: Partial<Line>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
   const sell = type === "SELL";
   // Buy and Sell both have line + invoice discounts (on a purchase they only lower what is owed to the supplier).
-  const sale = saleTotals(lines.map((l) => ({ qty: Number(l.qty) || 0, price: Number(l.price) || 0, discount: money ? disc(l.discKind, l.disc) : null })), money ? disc(invKind, invDisc) : null);
-  const total = money ? sale.total : docTotal(lines.map((l) => ({ qty: Number(l.qty) || 0, price: Number(l.price) || 0 })));
+  const sale = saleTotals(lines.map((l) => ({ qty: kgOf(l), price: Number(l.price) || 0, discount: money ? disc(l.discKind, l.disc) : null })), money ? disc(invKind, invDisc) : null);
+  const total = money ? sale.total : docTotal(lines.map((l) => ({ qty: kgOf(l), price: Number(l.price) || 0 })));
   // The customer account the document is booked to (the same list for buying and selling).
   const accList = custList;
   const accId = customerId;
@@ -95,7 +106,7 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
   const fillFromOrder = () => {
     const o = orders.find((x) => x.id === orderId);
     if (!o) return;
-    setLines(o.lines.map((l) => ({ key: ++seq.current, itemId: l.productId, qty: String(l.quantity), price: "", discKind: "PERCENT" as const, disc: "" })));
+    setLines(o.lines.map((l) => ({ key: ++seq.current, itemId: l.productId, qty: String(l.quantity), u: "pcs" as const, price: "", discKind: "PERCENT" as const, disc: "" })));
   };
 
   const addCustomer = () => start(async () => {
@@ -110,12 +121,13 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
     setError(null);
     const r = await saveStockDocAction({
       type, reason: money ? undefined : reason || undefined, phone: money ? phone || undefined : undefined,
+      party: money ? undefined : party || undefined, reference: money ? undefined : reference || undefined,
       supplierRef: type === "BUY" && invoiceNo ? invoiceNo : undefined, customerId: money ? customerId || undefined : undefined, delivery: sell ? delivery || undefined : undefined,
       rate: (type === "BUY" || costIn) && currency !== "IQD" && rate ? rate : undefined,
       discount: money ? disc(invKind, invDisc) ?? undefined : undefined,
       currency: priced ? currency : undefined, paid: money ? paidNow : undefined, safeId: money && paidNow > 0 && safeId ? safeId : undefined, orderId: sell && orderId ? orderId : undefined, note: note || undefined,
       ...(edit ? { editId: edit.id, editReason } : {}),
-      lines: filled.map((l) => ({ itemId: l.itemId, qty: l.qty, unitPrice: priced ? (l.price === "" ? undefined : l.price) : undefined, discount: money ? disc(l.discKind, l.disc) ?? undefined : undefined })),
+      lines: filled.map((l) => ({ itemId: l.itemId, qty: kgOf(l), unitPrice: priced ? (l.price === "" ? undefined : l.price) : undefined, discount: money ? disc(l.discKind, l.disc) ?? undefined : undefined })),
     });
     if (!r.ok) { setError(r.fieldErrors ? Object.values(r.fieldErrors)[0] ?? r.error : r.error); return; }
     router.push(`/stock/${r.data.id}?saved=1`);
@@ -127,7 +139,7 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
       <div className="inline-flex flex-wrap rounded-lg border border-line bg-surface p-0.5" role="tablist">
         {(edit ? [edit.type] : allowed).map((d) => (
           <button key={d} type="button" role="tab" aria-selected={type === d} onClick={() => setType(d)}
-            className={cn("min-h-10 rounded-md px-4 text-sm font-semibold", type === d ? "bg-brand-600 text-white" : "text-muted hover:text-ink")}>
+            className={cn("min-h-10 rounded-md px-4 text-sm font-semibold", type === d ? "bg-ink text-surface" : "text-muted hover:text-ink")}>
             {t(`sd.type.${d}`)}
           </button>
         ))}
@@ -137,12 +149,22 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
       <Card>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {!money && (
-            <label className="text-sm font-medium">{t("sd.reasonLabel")} *
-              <Select value={reason} onChange={(e) => setReason(e.target.value)} className="mt-1" aria-label={t("sd.reasonLabel")}>
-                <option value="">—</option>
-                {REASONS.map((r) => <option key={r} value={r}>{t(`sd.reason.${r}`)}</option>)}
-              </Select>
-            </label>
+            <>
+              <label className="text-sm font-medium">{t("sd.reasonLabel")} *
+                <Select value={reason} onChange={(e) => setReason(e.target.value)} className="mt-1" aria-label={t("sd.reasonLabel")}>
+                  <option value="">—</option>
+                  {(type === "INPUT" ? IN_REASONS : OUT_REASONS).map((r) => <option key={r} value={r}>{t(`sd.reason.${r}`)}</option>)}
+                </Select>
+              </label>
+              <label className="text-sm font-medium">{t(type === "INPUT" ? "sd.source" : "sd.destination")}
+                <Input value={party} onChange={(e) => setParty(e.target.value)} className="mt-1" maxLength={160} aria-label={t(type === "INPUT" ? "sd.source" : "sd.destination")} />
+              </label>
+              <label className="text-sm font-medium">{t("sd.reference")}
+                <Input value={reference} onChange={(e) => setReference(e.target.value)} className="mt-1" dir="ltr" maxLength={80} aria-label={t("sd.reference")} />
+                <span className="text-xs font-normal text-muted">{t("sd.referenceHint")}</span>
+              </label>
+              <p className="text-xs text-muted sm:col-span-2 lg:col-span-4">{t(type === "INPUT" ? "sd.noDoubleIn" : "sd.noDoubleOut")}</p>
+            </>
           )}
           {money && (
             <>
@@ -154,7 +176,7 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
                   </div>
                   <Button type="button" variant="secondary" onClick={() => setAdding((a) => !a)} title={t(`${ns}.new`)}><UserPlus className="size-4" /> <span className="hidden sm:inline">{t(`${ns}.new`)}</span></Button>
                 </div>
-                {cust && <span className="mt-1 block text-xs font-normal text-muted" dir="ltr">{cust.code}{cust.address ? ` · ${cust.address}` : ""} · {t("cust.balanceNow")}: <b className={cust.balance[currency] < 0 ? "text-red-600" : ""}>{fmtMoney(cust.balance[currency])} {currency}</b></span>}
+                {cust && <span className="mt-1 block text-xs font-normal text-muted" dir="ltr">{cust.code}{cust.address ? ` · ${cust.address}` : ""} · {t("cust.balanceNow")}: <b>{fmtMoney(cust.balance[currency])} {currency}</b></span>}
                 {adding && (
                   <div className="mt-2 grid gap-2 rounded-lg border border-line bg-surface-2 p-3 sm:grid-cols-3">
                     <Input value={newCust.name} onChange={(e) => setNewCust({ ...newCust, name: e.target.value })} placeholder={t(`${ns}.name`)} aria-label={t(`${ns}.name`)} />
@@ -231,9 +253,9 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
       <Card className="p-0 sm:p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3" role="radiogroup" aria-label={t("item.section")}>
           <span className="text-sm font-medium">{t("item.section")}:</span>
-          {(["ALL", "PRODUCT", "STICKER", "MATERIAL", "PACKAGING"] as const).map((k) => (
+          {(["ALL", "PRODUCT", "MATERIAL"] as const).map((k) => (
             <button key={k} type="button" role="radio" aria-checked={section === k} onClick={() => setSection(k)}
-              className={cn("min-h-9 rounded-full border px-3 text-sm font-semibold", section === k ? "border-brand-600 bg-brand-600 text-white" : "border-line bg-surface text-muted hover:text-ink")}>
+              className={cn("min-h-9 rounded-full border px-3 text-sm font-semibold", section === k ? "border-ink bg-ink text-surface" : "border-line bg-surface text-muted hover:text-ink")}>
               {k === "ALL" ? t("item.allSections") : t(`md.kindPlural.${k}`)} <span className="text-xs opacity-75">{k === "ALL" ? items.length : items.filter((i) => i.kind === k).length}</span>
             </button>
           ))}
@@ -246,21 +268,30 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
         <ul className="divide-y divide-line">
           {lines.map((l) => {
             const it = byId.get(l.itemId);
-            const after = it ? it.stock + (goesOut ? -1 : 1) * (Number(l.qty) || 0) : 0;
+            const kg = it?.unit.toLowerCase() === "kg";
+            const after = it ? Math.round((it.stock + (goesOut ? -1 : 1) * kgOf(l)) * 1e6) / 1e6 : 0;
             return (
               <li key={l.key} className={cn("grid gap-2 px-4 py-3 md:items-start md:gap-3", money ? "md:grid-cols-[1fr_7rem_8rem_10rem_8rem_2.5rem]" : costIn ? "md:grid-cols-[1fr_8rem_8rem_2.5rem]" : "md:grid-cols-[1fr_8rem_2.5rem]")}>
                 <div>
-                  <Combobox key={section} name={`item_${l.key}`} options={optionsFor(l.itemId)} defaultValue={l.itemId} onChange={(v) => set(l.key, { itemId: v })} placeholder={t("rc.chooseItem")} />
+                  <Combobox key={section} name={`item_${l.key}`} options={optionsFor(l.itemId)} defaultValue={l.itemId} onChange={(v) => {
+                    const ni = byId.get(v);
+                    set(l.key, { itemId: v, u: ni?.unit.toLowerCase() === "kg" ? (l.u === "g" ? "g" : "kg") : "pcs" });
+                  }} placeholder={t("rc.chooseItem")} />
                   {it && (
-                    <p className={cn("mt-1 text-xs", after < 0 ? "font-semibold text-amber-600" : "text-muted")} dir="ltr">
-                      {it.code} · {t("order.inStock")}: {fmtQty(it.stock)} {it.unit}{Number(l.qty) > 0 && ` → ${fmtQty(after)} ${it.unit}`}{after < 0 && ` · ${t("sd.willGoMinus")}`}
+                    <p className={cn("mt-1 text-xs", after < 0 ? "font-semibold underline" : "text-muted")} dir="ltr" data-testid="line-stock">
+                      {it.code} · {t("order.inStock")}: {fmtQty(it.stock)} {it.unit}{kgOf(l) > 0 && ` → ${fmtQty(Math.max(after, 0))} ${it.unit}`}
                     </p>
                   )}
+                  {it && after < 0 && <p className="mt-0.5 text-xs font-semibold" role="alert">{t("sd.notEnough", { n: fmtQty(it.stock), unit: it.unit })}</p>}
                 </div>
                 <label className="text-xs text-muted md:text-transparent">
                   <span className="md:sr-only">{t("order.quantity")}</span>
-                  <Input type="number" inputMode="decimal" min={0} step={it?.unit.toLowerCase() === "kg" ? "0.001" : 1} value={l.qty} onChange={(e) => set(l.key, { qty: e.target.value })} dir="ltr" className="text-end" aria-label={`${it?.code ?? ""} ${t("order.quantity")}`} />
-                  {it && <span className="mt-0.5 block text-end text-muted">{it.unit}</span>}
+                  <Input type="number" inputMode="decimal" min={0} step={kg ? "any" : 1} value={l.qty} onChange={(e) => set(l.key, { qty: e.target.value })} dir="ltr" className="text-end" aria-label={`${it?.code ?? ""} ${t("order.quantity")}`} />
+                  {it && (kg ? (
+                    <Select value={l.u} onChange={(e) => set(l.key, { u: e.target.value as "kg" | "g" })} className="mt-1 min-h-9 text-end" aria-label={`${it.code} ${t("item.unit")}`}>
+                      <option value="kg">kg</option><option value="g">g</option>
+                    </Select>
+                  ) : <span className="mt-0.5 block text-end text-muted">{it.unit}</span>)}
                 </label>
                 {costIn && (
                   <label className="text-xs text-muted md:text-transparent">
@@ -284,7 +315,7 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
                       </div>
                     )}
                     <p className="self-center text-end text-sm font-semibold tabular-nums" dir="ltr">
-                      {money ? fmtMoney(sale.lines[lines.indexOf(l)].net) : fmtMoney(lineTotal(Number(l.qty) || 0, Number(l.price) || 0))} {currency}
+                      {money ? fmtMoney(sale.lines[lines.indexOf(l)].net) : fmtMoney(lineTotal(kgOf(l), Number(l.price) || 0))} {currency}
                       {money && sale.lines[lines.indexOf(l)].discount > 0 && <span className="block text-xs font-normal text-muted line-through">{fmtMoney(sale.lines[lines.indexOf(l)].gross)}</span>}
                     </p>
                   </>
@@ -337,12 +368,12 @@ export default function DocForm({ allowed, initialType, initialOrder, items, ord
             </label>
             <p className="text-sm">{t("sd.total")}: <b dir="ltr">{fmtMoney(total)} {currency}</b></p>
             {cust ? (
-              <p className="text-sm" data-testid="new-balance">{t("cust.prevBalance")}: <b dir="ltr">{fmtMoney(cust.balance[currency])}</b> · {t("cust.newBalance")}: <b dir="ltr" className={round2(cust.balance[currency] - total + paidNow) < 0 ? "text-red-600" : ""}>{fmtMoney(round2(cust.balance[currency] - total + paidNow))} {currency}</b></p>
+              <p className="text-sm" data-testid="new-balance">{t("cust.prevBalance")}: <b dir="ltr">{fmtMoney(cust.balance[currency])}</b> · {t("cust.newBalance")}: <b dir="ltr">{fmtMoney(round2(cust.balance[currency] - total + paidNow))} {currency}</b></p>
             ) : (
-              <p className={cn("text-sm", owed > 0 ? "font-semibold text-amber-600" : "text-muted")}>{t("cash.stillOwed")}: <b dir="ltr">{fmtMoney(Math.max(owed, 0))} {currency}</b></p>
+              <p className={cn("text-sm", owed > 0 ? "font-semibold" : "text-muted")}>{t("cash.stillOwed")}: <b dir="ltr">{fmtMoney(Math.max(owed, 0))} {currency}</b></p>
             )}
           </div>
-          {total > 0 && paidNow !== round2(total) && <button type="button" onClick={() => setPaidText(String(round2(total)))} className="mt-2 text-xs font-semibold text-brand-600 hover:underline">{t("cash.payAll")}</button>}
+          {total > 0 && paidNow !== round2(total) && <button type="button" onClick={() => setPaidText(String(round2(total)))} className="mt-2 text-xs font-semibold underline">{t("cash.payAll")}</button>}
           {iqdValue !== null && <p className="mt-2 text-sm" data-testid="buy-iqd">{t("sd.iqdValue")}: <b dir="ltr">{fmtMoney(iqdValue)} IQD</b></p>}
           {paidNow > 0 && safes.length > 0 && (
             <div className="mt-3 sm:max-w-sm">

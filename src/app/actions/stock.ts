@@ -8,7 +8,7 @@ import { notify } from "@/lib/notify";
 import { audit } from "@/lib/audit";
 import { nextNumber } from "@/lib/numbering";
 import { run, UserError } from "@/lib/action";
-import { shortages, type Shortage } from "@/lib/consumption";
+import { lockItems, neverNegative, requireStock, stampNow } from "@/lib/stock";
 import { pickSafe, takeOut, type Cur } from "@/lib/cash";
 import { PRICE_DECIMALS, docTotal, discountProblem, maxDecimals, saleTotals } from "@/lib/money";
 import type { Permission } from "@/lib/permissions";
@@ -17,11 +17,19 @@ import type { Permission } from "@/lib/permissions";
  * Stock movements section (owner, 25 Oct 2026): every manual change of stock is one document —
  * Input / Output (no money, with a reason) or Buy / Sell (price per line in IQD or USD, typed
  * customer account (bought from or sold to), invoice number; a sale can be linked to an order). Production and what it
- * uses still move stock automatically. Going below zero is allowed; the warehouse is warned.
+ * uses move stock automatically.
+ *
+ * Dairy (owner, 28 Oct 2026): stock NEVER goes below zero. A document that would take more than is in stock is
+ * refused, naming each item that is short. Input / Output are the warehouse's daily in / out entries:
+ * bought goods come in through the accountant's Buy (never also as an Input), and ingredients used by production
+ * leave automatically with the production entry (never also as an Output) — so nothing is counted twice.
  */
 const TYPES = ["INPUT", "OUTPUT", "BUY", "SELL"] as const;
 type DocType = (typeof TYPES)[number];
-const REASONS = ["RETURN", "TRANSFER", "COUNT", "DAMAGE", "SAMPLE", "OTHER"] as const;
+const REASONS = ["OPENING", "RETURN", "TRANSFER", "COUNT", "DAMAGE", "EXPIRED", "SAMPLE", "OTHER"] as const;
+/** Reasons each direction may use. */
+const IN_REASONS: readonly string[] = ["OPENING", "RETURN", "TRANSFER", "COUNT", "OTHER"];
+const OUT_REASONS: readonly string[] = ["RETURN", "TRANSFER", "COUNT", "DAMAGE", "EXPIRED", "SAMPLE", "OTHER"];
 const PERM: Record<DocType, Permission> = { INPUT: "stock:input", OUTPUT: "stock:output", BUY: "stock:buy", SELL: "stock:sell" };
 const NUM = { INPUT: "stockInput", OUTPUT: "stockOutput", BUY: "stockBuy", SELL: "stockSell" } as const;
 const isIn = (t: DocType) => t === "INPUT" || t === "BUY";
@@ -32,7 +40,10 @@ const discount = z.object({ kind: z.enum(["PERCENT", "AMOUNT"]), value: z.coerce
 const schema = z.object({
   type: z.enum(TYPES),
   reason: z.enum(REASONS).optional(),
+  /** Input: supplier / source · Output: destination / recipient · Buy / Sell: filled from the customer. */
   party: z.string().trim().max(160).optional(),
+  /** Input / Output: the paper's own number (delivery note, transfer slip…). */
+  reference: z.string().trim().max(80).optional(),
   invoiceNo: z.string().trim().max(80).optional(),
   phone: z.string().trim().max(40).regex(/^[0-9+()\-\s]*$/, "The phone number can only have digits, spaces, + and -").optional(),
   currency: z.enum(["IQD", "USD", "EUR"]).optional(),
@@ -60,7 +71,7 @@ const schema = z.object({
   })).min(1, "Add at least one item").max(500, "At most 500 lines"),
 });
 
-export type DocResult = { id: string; number: string; shortages: Shortage[] };
+export type DocResult = { id: string; number: string };
 
 /** A saved document with its lines and payments, held (row lock) until the edit is saved. */
 async function lockedDoc(tx: Tx, id: string) {
@@ -78,6 +89,8 @@ export async function saveStockDocAction(input: unknown) {
     const editing = !!raw.editId;
     if (editing && (raw.editReason ?? "").length < 3) throw new UserError("Write why the receipt is changed.");
     if (!money(t) && !raw.reason) throw new UserError("Choose the reason.");
+    if (t === "INPUT" && !IN_REASONS.includes(raw.reason!)) throw new UserError("That reason is for goods going out. Choose a reason for goods coming in.");
+    if (t === "OUTPUT" && !OUT_REASONS.includes(raw.reason!)) throw new UserError("That reason is for goods coming in. Choose a reason for goods going out.");
     if (money(t) && !raw.customerId) throw new UserError("Choose the customer.");
     if (!money(t) && (raw.discount || raw.lines.some((l) => l.discount?.value))) throw new UserError("Discounts are only for purchases and sales.");
     if (money(t)) {
@@ -119,8 +132,8 @@ export async function saveStockDocAction(input: unknown) {
       for (const l of raw.lines) {
         const it = item(l.itemId);
         if (it.unit.toLowerCase() !== "kg" && !Number.isInteger(l.qty)) throw new UserError(`${it.code} is counted in pieces — whole numbers only.`);
-        // Tolerant check: 1.001 × 1000 is 1000.9999… in floating point, which a strict comparison refused.
-        if (it.unit.toLowerCase() === "kg" && !maxDecimals(l.qty, 3)) throw new UserError(`${it.code}: at most 3 decimals.`);
+        // kg to 6 decimals = 1 mg. Tolerant check: 1.001 × 1000 is 1000.9999… in floating point.
+        if (it.unit.toLowerCase() === "kg" && !maxDecimals(l.qty, 6)) throw new UserError(`${it.code}: at most 6 decimals of a kg (1 mg).`);
       }
       if (raw.orderId && !(await tx.order.count({ where: { id: raw.orderId } }))) throw new UserError("That order no longer exists.");
       // Buy / Sell: booked to a customer account; the name/phone are copied so the document keeps them as they were.
@@ -137,10 +150,19 @@ export async function saveStockDocAction(input: unknown) {
         if (old.payments.length && raw.currency !== old.currency) throw new UserError(`Money was already paid on this receipt in ${old.currency}, so its currency can't change.`);
         if (total! + 1e-9 < paidSoFar) throw new UserError(`${paidSoFar.toLocaleString("en")} ${old.currency} was already paid on this receipt — the new total can't be less than that.`);
       }
+      // Never below zero: hold every item on the old and new lines, then check the real stock while holding them.
+      const signed = new Map<string, number>();
+      for (const l of raw.lines) signed.set(l.itemId, (signed.get(l.itemId) ?? 0) + (isIn(t) ? l.qty : -l.qty));
+      for (const l of old?.lines ?? []) signed.set(l.productId, (signed.get(l.productId) ?? 0) - Number(l.qty));
+      const touched = [...signed.keys()];
+      await lockItems(tx, touched);
+      const what = `${old ? old.number : t === "OUTPUT" ? "Output" : t === "SELL" ? "Sale" : t === "BUY" ? "Purchase" : "Input"} blocked`;
+      await requireStock(tx, new Map([...signed].filter(([, d]) => d < 0).map(([id, d]) => [id, -d])), what);
+
       const number = old ? old.number : await nextNumber(NUM[t], tx);
       // Every field is written, so an edit also clears what no longer applies.
       const fields = {
-        type: t, reason: money(t) ? null : raw.reason!, party, phone, invoiceNo,
+        type: t, reason: money(t) ? null : raw.reason!, reference: money(t) ? null : raw.reference || null, party, phone, invoiceNo,
         currency: money(t) || costed ? raw.currency! : null,
         rate: (t === "BUY" || costed) && raw.currency && raw.currency !== "IQD" ? raw.rate! : null,
         orderId: raw.orderId || null, note: raw.note || null, total,
@@ -162,11 +184,13 @@ export async function saveStockDocAction(input: unknown) {
       }
       await tx.stockMovement.createMany({
         data: raw.lines.map((l, i) => ({
-          productId: l.itemId, type: t, qty: isIn(t) ? l.qty : -l.qty, docId: doc.id, reference: number, ...(old ? { createdAt: old.createdAt } : {}),
+          productId: l.itemId, type: t, qty: isIn(t) ? l.qty : -l.qty, docId: doc.id, reference: number, createdAt: old ? old.createdAt : stampNow(),
           unitPrice: money(t) ? l.unitPrice! : costed ? l.unitPrice ?? null : null, reason: raw.note || null, createdById: old ? old.createdById : me.id,
           ...(sale && l.discount?.value ? { discountKind: l.discount.kind, discountValue: l.discount.value, discount: sale.lines[i].discount } : {}),
         })),
       });
+      // An edit changes the past: no item may have gone below zero at any point since this document.
+      await neverNegative(tx, touched, old ? old.createdAt : undefined, what);
       if (paid > 0) {
         const safe = await pickSafe(tx, raw.safeId, raw.currency as Cur);
         if (t === "BUY") await takeOut(tx, safe, raw.currency as Cur, paid);
@@ -179,20 +203,19 @@ export async function saveStockDocAction(input: unknown) {
       if (old) {
         await audit({
           userId: me.id, action: "stock.edit", entityType: "StockDoc", entityId: doc.id, reason: raw.editReason!,
-          before: { number, party: old.party, currency: old.currency, rate: old.rate === null ? null : Number(old.rate), total: old.total === null ? null : Number(old.total), discount: old.discount === null ? null : Number(old.discount), reason: old.reason, note: old.note, lines: old.lines.map((l) => lineText(l.product.code, Number(l.qty), l.unitPrice)) },
-          after: { number, party, currency: fields.currency, rate: fields.rate, total, discount: fields.discount, reason: fields.reason, note: fields.note, lines: raw.lines.map((l) => lineText(item(l.itemId).code, l.qty, l.unitPrice)) },
+          before: { number, party: old.party, reference: old.reference, currency: old.currency, rate: old.rate === null ? null : Number(old.rate), total: old.total === null ? null : Number(old.total), discount: old.discount === null ? null : Number(old.discount), reason: old.reason, note: old.note, lines: old.lines.map((l) => lineText(l.product.code, Number(l.qty), l.unitPrice)) },
+          after: { number, party, reference: fields.reference, currency: fields.currency, rate: fields.rate, total, discount: fields.discount, reason: fields.reason, note: fields.note, lines: raw.lines.map((l) => lineText(item(l.itemId).code, l.qty, l.unitPrice)) },
         }, tx);
         await notify({
           type: "stock.edited", data: { number, by: me.fullName, reason: raw.editReason! },
           link: `/stock/${doc.id}`, toPermission: "stock:view", exceptUserId: me.id,
         }, tx);
-        return { id: doc.id, number, shortages: isIn(t) ? [] : await shortages(ids, tx) };
+        return { id: doc.id, number };
       }
       await audit({
         userId: me.id, action: `stock.${t.toLowerCase()}`, entityType: "StockDoc", entityId: doc.id, reason: raw.note ?? null,
-        after: { number, party, invoice: invoiceNo, ...(t === "BUY" ? { supplierInvoice: raw.supplierRef ?? null, rate: raw.rate ?? null } : {}), currency: raw.currency ?? null, ...(sale ? { subtotal: sale.subtotal, discount: sale.discount, delivery: raw.delivery ?? null } : {}), total, paid: money(t) ? paid : null, reason: raw.reason ?? null, lines: raw.lines.map((l) => `${item(l.itemId).code} × ${l.qty}${l.unitPrice !== undefined && money(t) ? ` @ ${l.unitPrice}` : ""}`) },
+        after: { number, party, reference: fields.reference, invoice: invoiceNo, ...(t === "BUY" ? { supplierInvoice: raw.supplierRef ?? null, rate: raw.rate ?? null } : {}), currency: raw.currency ?? null, ...(sale ? { subtotal: sale.subtotal, discount: sale.discount, delivery: raw.delivery ?? null } : {}), total, paid: money(t) ? paid : null, reason: raw.reason ?? null, lines: raw.lines.map((l) => `${item(l.itemId).code} × ${l.qty}${l.unitPrice !== undefined && money(t) ? ` @ ${l.unitPrice}` : ""}`) },
       }, tx);
-      const short = isIn(t) ? [] : await shortages(ids, tx);
       if (money(t)) {
         // Totals and the customer go only to people who buy, sell or see the safe (M3);
         // everyone else who follows stock gets the same news without the money.
@@ -212,13 +235,7 @@ export async function saveStockDocAction(input: unknown) {
           link: `/stock/${doc.id}`, toPermission: "stock:view", exceptUserId: me.id,
         }, tx);
       }
-      if (short.length) {
-        await notify({
-          type: "stock.shortage", data: { n: short.length, items: short.slice(0, 5).map((s) => s.code).join(", ") + (short.length > 5 ? "…" : ""), by: me.fullName },
-          link: `/stock/${doc.id}`, toPermission: "warehouse:view", exceptUserId: me.id,
-        }, tx);
-      }
-      return { id: doc.id, number, shortages: short };
+      return { id: doc.id, number };
     }, { timeout: 60_000 });
     for (const p of ["/stock", "/inventory", "/dashboard", "/reports", "/cash"]) revalidatePath(p);
     if (raw.orderId) revalidatePath(`/orders/${raw.orderId}`);

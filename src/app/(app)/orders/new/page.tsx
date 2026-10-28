@@ -9,7 +9,7 @@ export const metadata = { title: "New order" };
 export default async function NewOrderPage() {
   await pageUser("orders:create");
   const t = await getTranslations();
-  const products = await db.product.findMany({ where: { archivedAt: null, kind: "PRODUCT" }, orderBy: [{ mold: { code: "asc" } }, { code: "asc" }], select: { id: true, name: true, name2: true, code: true, mold: { select: { code: true } } } });
+  const products = await db.product.findMany({ where: { archivedAt: null, kind: "PRODUCT" }, orderBy: { code: "asc" }, select: { id: true, name: true, name2: true, code: true } });
   if (products.length === 0) {
     return (
       <>
@@ -24,7 +24,7 @@ export default async function NewOrderPage() {
   return (
     <>
       <PageHeader title={t("order.new")} subtitle={t("order.newHint")} />
-      <OrderForm products={products.map((p) => ({ ...p, mold: p.mold?.code }))} />
+      <OrderForm products={products} />
     </>
   );
 }

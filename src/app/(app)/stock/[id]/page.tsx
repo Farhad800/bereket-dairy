@@ -12,6 +12,8 @@ import { docTotal, fmtPrice, lineTotal } from "@/lib/money";
 import PayForm from "./pay-form";
 import { customerBalance } from "@/lib/customers";
 import { listSafes } from "@/lib/cash";
+import { attachmentAccess } from "@/lib/attachments";
+import Attachments from "@/components/attachments";
 
 export const metadata = { title: "Stock movement" };
 
@@ -45,7 +47,10 @@ export default async function StockDocPage({ params, searchParams }: { params: P
   // Whoever may make this type of receipt may change it; a priced one only by people who see money.
   const mayEdit = can(me, DOC_PERM[d.type as DocType]) && (canSeeMoney(me) || !d.lines.some((l) => l.unitPrice !== null));
   const hasLineDisc = d.lines.some((l) => Number(l.discount ?? 0) > 0);
-  const minus = d.lines.filter((l) => (stock.get(l.productId) ?? 0) < 0);
+  // Scanned papers (delivery notes, invoices): a Buy / Sell paper shows prices, so only money roles see those.
+  const files = await attachmentAccess("StockDoc", d.id, me);
+  const attachments = files?.view ? await db.attachment.findMany({ where: { entityType: "StockDoc", entityId: d.id }, orderBy: { createdAt: "asc" } }) : [];
+  const uploaders = await db.user.findMany({ where: { id: { in: [...new Set(attachments.map((a) => a.uploadedById))] } }, select: { id: true, fullName: true } });
 
   return (
     <>
@@ -55,11 +60,11 @@ export default async function StockDocPage({ params, searchParams }: { params: P
         {money && <LinkButton href={`/print/receipt/doc/${d.id}`} target="_blank"><Printer className="size-4" /> {t("rc2.printReceipt")}</LinkButton>}
       </> : undefined} subtitle={<span className="flex flex-wrap items-center gap-2"><Badge tone={DOC_TONE[d.type]}>{t(`sd.type.${d.type}`)}</Badge>{formatDateTime(d.createdAt, locale)} · {by?.fullName ?? "—"}</span>} />
       {saved && <div className="mb-3"><Alert tone="green">{t("sd.saved", { number: d.number })}</Alert></div>}
-      {minus.length > 0 && <div className="mb-3"><Alert tone="amber">{t("sd.minusNow", { items: minus.map((l) => `${l.product.code} (${fmtQty(stock.get(l.productId) ?? 0)} ${l.product.unit})`).join(", ") })}</Alert></div>}
       <Card className="mb-4">
         <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
           {d.reason && <div><dt className="text-xs text-muted">{t("sd.reasonLabel")}</dt><dd>{t(`sd.reason.${d.reason}`)}</dd></div>}
-          {d.party && <div><dt className="text-xs text-muted">{t("sd.customer")}</dt><dd className="font-semibold">
+          {d.reference && <div><dt className="text-xs text-muted">{t("sd.reference")}</dt><dd className="font-semibold" dir="ltr" data-testid="doc-reference">{d.reference}</dd></div>}
+          {d.party && <div><dt className="text-xs text-muted">{t(d.type === "INPUT" ? "sd.source" : d.type === "OUTPUT" ? "sd.destination" : "sd.customer")}</dt><dd className="font-semibold">
             {d.customer && can(me, "customers:view") && canSeeMoney(me) ? <Link href={`/customers/${d.customer.id}`} className="text-brand-600 hover:underline">{d.party}</Link>
               : d.party}
             {d.customer && <span className="ms-1 text-xs font-normal text-muted" dir="ltr">{d.customer.code}</span>}</dd></div>}
@@ -79,8 +84,8 @@ export default async function StockDocPage({ params, searchParams }: { params: P
           <h2 className="font-semibold">{t(sell ? "cash.receivedTitle" : "cash.paidTitle")}</h2>
           <dl className="mt-2 grid grid-cols-3 gap-3 text-sm">
             <div><dt className="text-xs text-muted">{t("sd.total")}</dt><dd className="font-semibold" dir="ltr">{fmtMoney(total)} {d.currency}</dd></div>
-            <div><dt className="text-xs text-muted">{t(sell ? "cash.received" : "cash.paid")}</dt><dd className="font-semibold text-green-700 dark:text-green-400" dir="ltr">{fmtMoney(paid)} {d.currency}</dd></div>
-            <div><dt className="text-xs text-muted">{t("cash.stillOwed")}</dt><dd className={`font-bold ${owed > 0 ? "text-amber-600" : ""}`} dir="ltr">{fmtMoney(owed)} {d.currency}</dd></div>
+            <div><dt className="text-xs text-muted">{t(sell ? "cash.received" : "cash.paid")}</dt><dd className="font-semibold" dir="ltr">{fmtMoney(paid)} {d.currency}</dd></div>
+            <div><dt className="text-xs text-muted">{t("cash.stillOwed")}</dt><dd className={`font-bold ${owed > 0 ? "underline" : ""}`} dir="ltr">{fmtMoney(owed)} {d.currency}</dd></div>
           </dl>
           {payments.length > 0 && (
             <ul className="mt-3 divide-y divide-line text-sm">
@@ -95,7 +100,7 @@ export default async function StockDocPage({ params, searchParams }: { params: P
               ))}
             </ul>
           )}
-          {balance !== null && <p className="mt-3 text-sm" data-testid="customer-balance">{t("cust.balanceNow")}: <b dir="ltr" className={balance < 0 ? "text-red-600" : ""}>{fmtMoney(balance)} {d.currency}</b> <span className="text-xs text-muted">({t("cust.signHint")})</span></p>}
+          {balance !== null && <p className="mt-3 text-sm" data-testid="customer-balance">{t("cust.balanceNow")}: <b dir="ltr">{fmtMoney(balance)} {d.currency}</b> <span className="text-xs text-muted">({t("cust.signHint")})</span></p>}
           {owed > 0 && mayPay && <PayForm docId={d.id} owed={owed} currency={d.currency!} sell={sell} safes={await listSafes(can(me, "cash:view"))} />}
         </Card>
       )}
@@ -122,7 +127,7 @@ export default async function StockDocPage({ params, searchParams }: { params: P
                     {money && <><td className="px-3 py-2 text-end tabular-nums" dir="ltr">{fmtPrice(Number(l.unitPrice ?? 0))}</td>
                       {hasLineDisc && <td className="px-3 py-2 text-end tabular-nums" dir="ltr">{Number(l.discount ?? 0) > 0 ? `−${fmtMoney(Number(l.discount))}${l.discountKind === "PERCENT" ? ` (${Number(l.discountValue)}%)` : ""}` : ""}</td>}
                       <td className="px-3 py-2 text-end font-semibold tabular-nums" dir="ltr">{fmtMoney(lineTotal(q, Number(l.unitPrice ?? 0)) - Number(l.discount ?? 0))}</td></>}
-                    <td className={`px-4 py-2 text-end tabular-nums ${now < 0 ? "font-bold text-red-600" : ""}`} dir="ltr">{fmtQty(now)}</td>
+                    <td className="px-4 py-2 text-end tabular-nums" dir="ltr">{fmtQty(now)}</td>
                   </tr>
                 );
               })}
@@ -139,6 +144,13 @@ export default async function StockDocPage({ params, searchParams }: { params: P
           </table>
         </div>
       </Card>
+      {files?.view && (
+        <Card className="mt-4">
+          <h2 className="mb-2 font-semibold">{t("sd.papers")}</h2>
+          <Attachments entityType="StockDoc" entityId={d.id} canAdd={files.add}
+            files={attachments.map((a) => ({ id: a.id, filename: a.filename, mimeType: a.mimeType, when: formatDateTime(a.createdAt, locale), by: uploaders.find((u) => u.id === a.uploadedById)?.fullName ?? "—" }))} />
+        </Card>
+      )}
     </>
   );
 }

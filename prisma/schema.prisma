@@ -1,5 +1,5 @@
-// Bereket Plastic — Factory Management System
-// Full schema for all departments. Designed up front so later stages don't restructure.
+// Bereket Dairy — Factory Management System
+// Adapted from Bereket FMS (plastic). Separate project, separate database.
 
 generator client {
   provider = "prisma-client-js"
@@ -84,7 +84,7 @@ model AuditLog {
   id         String   @id @default(cuid())
   userId     String?
   user       User?    @relation(fields: [userId], references: [id])
-  action     String // e.g. "order.create", "qc.hold", "stock.adjust"
+  action     String // e.g. "order.create", "production.report", "stock.output"
   entityType String
   entityId   String?
   reason     String?
@@ -111,120 +111,40 @@ model Counter {
 // ───────────────────────────── Master data ─────────────────────────────
 
 model Product {
-  id               String             @id @default(cuid())
-  code             String             @unique
-  kind             ItemKind           @default(PRODUCT)
-  name             String
-  name2            String? // second name (e.g. Turkish) shown under the main one
-  specifications   String?
-  unit             String             @default("pcs")
-  material         String?
-  color            String?
-  weightGrams      Decimal?           @db.Decimal(10, 2)
-  cycleTimeSec     Decimal?           @db.Decimal(8, 2)
-  qcRequired       Boolean            @default(false) // shown to QC as "inspect every day's production"
-  // One mold makes many products: each printed label on the same molded item is its own product.
-  moldId           String?
-  mold             Mold?              @relation(fields: [moldId], references: [id], onDelete: SetNull)
-  /// The printed label this product carries (1 per piece); null = product has no label.
-  labelId          String?
-  label            Product?           @relation("ProductLabel", fields: [labelId], references: [id], onDelete: SetNull)
-  labelledProducts Product[]          @relation("ProductLabel")
-  piecesPerCarton  Int?
-  /// For packaging/materials stocked in kg but used by the piece (e.g. one nylon bag = 0.012 kg).
-  unitWeightKg     Decimal?           @db.Decimal(12, 6)
+  id             String             @id @default(cuid())
+  code           String             @unique
+  /// PRODUCT = finished product (section 1) · MATERIAL = ingredient or production item (section 2)
+  kind           ItemKind           @default(PRODUCT)
+  name           String
+  name2          String? // second name (e.g. Arabic or Turkish) shown under the main one
+  specifications String?
+  /// Stock unit: "pcs" or "kg" (kg items can be typed in g; always stored in kg, up to 1 mg).
+  unit           String             @default("pcs")
+  /// Products only (optional): how many pieces go into one carton. Null = not packed in cartons.
+  piecesPerCarton Int?
+  /// Products only: how many pieces one batch of the recipe is expected to give (used for loss %).
+  batchYield     Int?
   /// Cost of one unit (1 pc or 1 kg) as the accountant typed it: price + currency + rate to IQD (1 for IQD).
   /// costIqd = costPrice × costRate is what product costs are calculated with.
-  costPrice        Decimal?           @db.Decimal(18, 6)
-  costCurrency     Currency?
-  costRate         Decimal?           @db.Decimal(18, 6)
-  costIqd          Decimal?           @db.Decimal(18, 6)
-  costUpdatedAt    DateTime?
-  components       ProductComponent[] @relation("Recipe")
-  usedIn           ProductComponent[] @relation("UsedIn")
-  archivedAt       DateTime?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  orderLines       OrderLine[]
-  entries          ProductionEntry[]
-  stockMovements   StockMovement[]
+  costPrice      Decimal?           @db.Decimal(18, 6)
+  costCurrency   Currency?
+  costRate       Decimal?           @db.Decimal(18, 6)
+  costIqd        Decimal?           @db.Decimal(18, 6)
+  costUpdatedAt  DateTime?
+  components     ProductComponent[] @relation("Recipe")
+  usedIn         ProductComponent[] @relation("UsedIn")
+  archivedAt     DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  orderLines     OrderLine[]
+  entries        ProductionEntry[]
+  stockMovements StockMovement[]
 
   @@index([name])
-  @@index([moldId])
   @@index([kind])
-  @@index([labelId])
-}
-
-enum MachineStatus {
-  AVAILABLE
-  RUNNING
-  DOWN
-  MAINTENANCE
-  RETIRED
-}
-
-model Machine {
-  id             String               @id @default(cuid())
-  code           String               @unique // e.g. "M-01"
-  name           String
-  manufacturer   String?              @default("Toyo")
-  model          String?
-  tonnage        Int?
-  status         MachineStatus        @default(AVAILABLE)
-  notes          String?
-  archivedAt     DateTime?
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  molds          Mold[]               @relation("MoldCurrentMachine")
-  maintenance    MaintenanceRequest[]
-  serviceReports ServiceReport[]
-  preventive     PreventiveTask[]
-}
-
-enum MoldStatus {
-  AVAILABLE
-  IN_USE
-  IN_REPAIR
-  RETIRED
-}
-
-model Mold {
-  id               String               @id @default(cuid())
-  code             String               @unique
-  name             String
-  cavities         Int                  @default(1)
-  products         Product[]
-  currentMachineId String?
-  currentMachine   Machine?             @relation("MoldCurrentMachine", fields: [currentMachineId], references: [id])
-  status           MoldStatus           @default(AVAILABLE)
-  shotCount        Int                  @default(0)
-  notes            String?
-  archivedAt       DateTime?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  maintenance      MaintenanceRequest[]
-  serviceReports   ServiceReport[]      @relation("ServiceMold")
-  removedIn        ServiceReport[]      @relation("MoldRemoved")
-  installedIn      ServiceReport[]      @relation("MoldInstalled")
-  preventive       PreventiveTask[]
-}
-
-model DefectCategory {
-  id     String         @id @default(cuid())
-  code   String         @unique
-  name   String
-  active Boolean        @default(true)
-  issues QualityIssue[]
 }
 
 // ───────────────────────────── Orders (a sheet of products and amounts) ─────────────────────────────
-
-enum Priority {
-  LOW
-  NORMAL
-  HIGH
-  URGENT
-}
 
 enum OrderStatus {
   OPEN
@@ -260,211 +180,34 @@ model OrderLine {
   @@index([productId])
 }
 
-// ───────────────────────────── Daily production ─────────────────────────────
+// ───────────────────────────── Production ─────────────────────────────
 
-enum Shift {
-  A // 07:00–15:00
-  B // 15:00–23:00
-  C // 23:00–07:00
-}
-
-enum EntryQcStatus {
-  NOT_INSPECTED
-  APPROVED
-  REJECTED // some or all pieces rejected
-}
-
-/// What was produced: one product, one shift, one day. Adds to stock automatically.
+/// One production run: a product, a day, how many batches of its recipe were made and how many pieces came out.
+/// Ingredients are taken by batches (recipe × batches), packaging by the pieces made. Never saved if anything is short.
 model ProductionEntry {
   id          String          @id @default(cuid())
   day         DateTime        @db.Date // factory calendar day
-  shift       Shift
   productId   String
   product     Product         @relation(fields: [productId], references: [id])
-  quantity    Int
-  qcStatus    EntryQcStatus   @default(NOT_INSPECTED)
+  batches     Decimal         @db.Decimal(12, 3)
+  quantity    Int // pieces actually produced
+  /// Pieces one batch was expected to give at the time (copied from the product), for loss.
+  expectedPerBatch Int?
   notes       String?
   createdById String
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
-  inspections QcInspection[]
-  issues      QualityIssue[]
   movements   StockMovement[]
 
   @@index([day])
   @@index([productId, day])
-  @@index([qcStatus])
-}
-
-// ───────────────────────────── Technical service ─────────────────────────────
-
-enum MaintenanceStatus {
-  OPEN
-  IN_PROGRESS
-  WAITING_PARTS
-  COMPLETED
-  VERIFIED
-  CANCELLED
-}
-
-model MaintenanceRequest {
-  id             String            @id @default(cuid())
-  number         String            @unique
-  machineId      String
-  machine        Machine           @relation(fields: [machineId], references: [id])
-  moldId         String?
-  mold           Mold?             @relation(fields: [moldId], references: [id])
-  title          String
-  description    String?
-  priority       Priority          @default(NORMAL)
-  status         MaintenanceStatus @default(OPEN)
-  machineDown    Boolean           @default(false)
-  isPreventive   Boolean           @default(false)
-  reportedById   String
-  assignedToId   String?
-  resolution     String?
-  readyAt        DateTime?
-  completedAt    DateTime?
-  verifiedAt     DateTime?
-  verifiedById   String?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  serviceReports ServiceReport[]
-
-  @@index([status])
-  @@index([machineId])
-}
-
-model ServiceReport {
-  id                   String              @id @default(cuid())
-  number               String              @unique
-  date                 DateTime
-  shift                Shift
-  technicianId         String
-  machineId            String
-  machine              Machine             @relation(fields: [machineId], references: [id])
-  moldId               String?
-  mold                 Mold?               @relation("ServiceMold", fields: [moldId], references: [id])
-  maintenanceRequestId String?
-  maintenanceRequest   MaintenanceRequest? @relation(fields: [maintenanceRequestId], references: [id])
-  moldRemovedId        String?
-  moldRemoved          Mold?               @relation("MoldRemoved", fields: [moldRemovedId], references: [id])
-  moldInstalledId      String?
-  moldInstalled        Mold?               @relation("MoldInstalled", fields: [moldInstalledId], references: [id])
-  moldChangeReason     String?
-  workPerformed        String
-  breakdown            String?
-  startTime            DateTime
-  endTime              DateTime?
-  downtimeMinutes      Int                 @default(0)
-  spareParts           String?
-  repairsCompleted     String?
-  outstandingWork      String?
-  followUp             String?
-  notes                String?
-  createdAt            DateTime            @default(now())
-
-  @@index([machineId, date])
-  @@index([moldId])
-}
-
-model PreventiveTask {
-  id           String    @id @default(cuid())
-  machineId    String?
-  machine      Machine?  @relation(fields: [machineId], references: [id])
-  moldId       String?
-  mold         Mold?     @relation(fields: [moldId], references: [id])
-  title        String
-  intervalDays Int
-  lastDoneAt   DateTime?
-  nextDueAt    DateTime
-  active       Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-}
-
-// ───────────────────────────── Quality control ─────────────────────────────
-
-enum QcDecision {
-  APPROVE
-  REJECT
-}
-
-model QcInspection {
-  id           String          @id @default(cuid())
-  number       String          @unique
-  entryId      String
-  entry        ProductionEntry @relation(fields: [entryId], references: [id])
-  inspectorId  String
-  inspectedAt  DateTime        @default(now())
-  sampleOnly   Boolean         @default(true)
-  qtyInspected Int
-  qtyRejected  Int             @default(0)
-  decision     QcDecision
-  notes        String?
-  createdAt    DateTime        @default(now())
-  issues       QualityIssue[]
-
-  @@index([entryId])
-}
-
-enum Severity {
-  MINOR
-  MAJOR
-  CRITICAL
-}
-
-enum IssueStatus {
-  OPEN
-  IN_PROGRESS
-  AWAITING_VERIFICATION
-  RESOLVED
-  REOPENED
-}
-
-model QualityIssue {
-  id                   String             @id @default(cuid())
-  number               String             @unique
-  entryId              String
-  entry                ProductionEntry    @relation(fields: [entryId], references: [id])
-  inspectionId         String?
-  inspection           QcInspection?      @relation(fields: [inspectionId], references: [id])
-  categoryId           String
-  category             DefectCategory     @relation(fields: [categoryId], references: [id])
-  severity             Severity
-  description          String
-  recommendedAction    String?
-  responsibleDept      String // PRODUCTION, SERVICE, QC, WAREHOUSE
-  assignedToId         String?
-  status               IssueStatus        @default(OPEN)
-  maintenanceRequestId String?
-  createdById          String
-  resolvedAt           DateTime?
-  verifiedById         String?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-  actions              CorrectiveAction[]
-
-  @@index([status, severity])
-}
-
-model CorrectiveAction {
-  id            String       @id @default(cuid())
-  issueId       String
-  issue         QualityIssue @relation(fields: [issueId], references: [id])
-  description   String
-  performedById String
-  performedAt   DateTime     @default(now())
 }
 
 // ───────────────────────────── Warehouse stock ─────────────────────────────
 
 enum StockMoveType {
-  PRODUCTION // automatic, from a daily production entry (incl. corrections)
-  QC_REJECT // automatic, pieces rejected by QC
-  OUT // goods leaving the warehouse
-  ADJUST // count correction, damage, scrap
-  RECEIVE // (older) stickers / materials received
-  USE // labels / materials / packaging used by production (automatic), or (older) taken to production
+  PRODUCTION // automatic, from a production entry (incl. corrections)
+  USE // ingredients / packaging used by production (automatic)
   INPUT // stock document: in without money (return, transfer, count correction…)
   OUTPUT // stock document: out without money
   BUY // stock document: bought, with price
@@ -489,7 +232,8 @@ model StockDoc {
   id            String          @id @default(cuid())
   number        String          @unique // IN-2026-0001, OUT-…, BUY-…, SAL-…
   type          StockDocType
-  reason        String? // Input/Output: RETURN, TRANSFER, COUNT, DAMAGE, SAMPLE, OTHER
+  reason        String? // Input/Output: PURCHASE_RECEIVED, RETURN, OPENING, TRANSFER, COUNT, DAMAGE, SAMPLE, EXPIRED, OTHER
+  reference     String? // Input/Output: the paper document / delivery note number typed by the warehouse
   party         String? // the customer's name as it was (Buy: bought from · Sell: sold to)
   phone         String? // customer / supplier phone, printed on the receipt
   invoiceNo     String? // Sell: automatic INV-2026-0001 · Buy: the supplier's invoice number (typed)
@@ -540,29 +284,28 @@ model Customer {
   @@index([name])
 }
 
-/// What a stock item is. Only PRODUCT is made on machines, ordered and inspected by QC.
+/// The two warehouse sections.
 enum ItemKind {
-  PRODUCT
-  STICKER // printed labels kept in stock
-  MATERIAL // raw materials: granules, dyes, regrind…
-  PACKAGING // nylon bags, cartons, stretch film, tape, pallets…
+  PRODUCT // finished products (yoghurt cups, bowls…), counted in pieces
+  MATERIAL // ingredients and production items (milk, cultures, sugar, cups, lids, labels, cartons…)
 }
 
 enum ComponentBasis {
-  PIECE // per piece produced (labels, handles, grams of material)
-  CARTON // per carton (cartons, nylon bags, tape…)
+  BATCH // per batch of the recipe (milk, sugar, cultures…)
+  PIECE // per piece produced (cups, lids, labels…)
+  CARTON // per carton packed (cartons, tape…) — needs the product's pieces per carton
 }
 
-/// What one product uses: its recipe ("made of") and packaging. Taken off stock when production is entered.
+/// A product's recipe: ingredients per batch, and packaging per piece / per carton.
+/// Taken off stock when production is entered — only if every item is in stock.
 model ProductComponent {
   id          String         @id @default(cuid())
   productId   String
   product     Product        @relation("Recipe", fields: [productId], references: [id], onDelete: Cascade)
   componentId String
   component   Product        @relation("UsedIn", fields: [componentId], references: [id])
-  /// kg item + PIECE: grams per piece · kg item + CARTON: bags per carton (× the item's weight per bag)
-  /// pcs item: pieces per piece or per carton
-  qty         Decimal        @db.Decimal(14, 4)
+  /// In the item's stock unit: kg (6 decimals = 1 mg) or pieces.
+  qty         Decimal        @db.Decimal(18, 6)
   per         ComponentBasis
   createdAt   DateTime       @default(now())
 
@@ -570,13 +313,13 @@ model ProductComponent {
   @@index([componentId])
 }
 
-/// Stock ledger: the balance of a product is the sum of its movements. Never edited.
+/// Stock ledger: the balance of an item is the sum of its movements. Never allowed below zero.
 model StockMovement {
   id            String           @id @default(cuid())
   productId     String
   product       Product          @relation(fields: [productId], references: [id])
   type          StockMoveType
-  qty           Decimal          @db.Decimal(14, 3) // + in, − out (pieces, or kg for materials)
+  qty           Decimal          @db.Decimal(18, 6) // + in, − out (pieces, or kg — 6 decimals = 1 mg)
   entryId       String?
   entry         ProductionEntry? @relation(fields: [entryId], references: [id])
   docId         String?

@@ -63,16 +63,8 @@ export async function once<T>(
   }
 }
 
-/** Holds one production entry until the transaction ends (corrections, QC). Returns false if it no longer exists. */
+/** Holds one production entry until the transaction ends (corrections). Returns false if it no longer exists. */
 export async function lockEntry(tx: Tx, entryId: string): Promise<boolean> {
   const rows = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM "ProductionEntry" WHERE id = ${entryId} FOR UPDATE`;
   return rows.length > 0;
-}
-
-/**
- * Holds one product + day + shift while its entry is found or created, so two people saving the same
- * product at the same moment end up in ONE entry. Other products, shifts and days are not held up.
- */
-export async function lockEntrySlot(tx: Tx, day: string, shift: string, productId: string) {
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`entry:${day}:${shift}:${productId}`}))`;
 }

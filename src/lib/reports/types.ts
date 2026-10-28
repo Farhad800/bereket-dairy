@@ -12,6 +12,7 @@ export type ColType =
   | "text"
   | "code" // record numbers: left-to-right, monospace
   | "int"
+  | "qty" // stock quantities: up to 6 decimals (kg to 1 mg), pieces whole
   | "signed" // stock movements (+ / −)
   | "pct" // 0–100
   | "hours"
@@ -45,7 +46,7 @@ export type ReportResult = {
   totals?: boolean;
 };
 
-export type FilterKey = "range" | "product" | "machine" | "status" | "priority" | "group" | "severity" | "type";
+export type FilterKey = "range" | "product" | "item" | "section" | "direction" | "employee" | "ref" | "status" | "group" | "type";
 
 export type ReportQuery = {
   from: string; // YYYY-MM-DD (factory calendar)
@@ -53,15 +54,22 @@ export type ReportQuery = {
   start: Date; // UTC instant, inclusive
   end: Date; // UTC instant, exclusive
   product?: string;
-  machine?: string;
+  /** Any stock item (product or ingredient / production item). */
+  item?: string;
+  section?: "PRODUCT" | "MATERIAL";
+  direction?: "IN" | "OUT";
+  employee?: string;
+  /** Reference / document number typed by the user (text search). */
+  ref?: string;
   status?: string;
-  priority?: string;
   group?: string;
-  severity?: string;
   type?: string;
 };
 
-export type ReportSection = "production" | "orders" | "service" | "quality" | "warehouse" | "money";
+/** Who is looking: money columns and values are only added for people who see money. */
+export type ReportCtx = { money: boolean };
+
+export type ReportSection = "production" | "orders" | "warehouse" | "money";
 
 export type ReportDef = {
   key: string;
@@ -77,5 +85,5 @@ export type ReportDef = {
   perm?: import("@/lib/permissions").Permission;
   /** Money reports: only for people who buy, sell or see the safe (code review M3). */
   money?: boolean;
-  run: (q: ReportQuery) => Promise<ReportResult>;
+  run: (q: ReportQuery, ctx: ReportCtx) => Promise<ReportResult>;
 };

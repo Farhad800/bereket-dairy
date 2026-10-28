@@ -48,14 +48,6 @@ export function toFactoryDateTimeInput(d: Date | null | undefined, tz = FACTORY_
   return local.toISOString().slice(0, 16);
 }
 
-/** Shift boundaries: A 07–15, B 15–23, C 23–07 (factory local time). */
-export function currentShift(d = new Date(), tz = FACTORY_TZ): "A" | "B" | "C" {
-  const hour = +new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "2-digit", hourCycle: "h23" }).format(d);
-  if (hour >= 7 && hour < 15) return "A";
-  if (hour >= 15 && hour < 23) return "B";
-  return "C";
-}
-
 export function formatDateTime(d: Date | string | null | undefined, locale = "en", tz = FACTORY_TZ) {
   if (!d) return "—";
   return new Intl.DateTimeFormat(locale === "ar" ? "ar-IQ-u-nu-latn" : locale, {

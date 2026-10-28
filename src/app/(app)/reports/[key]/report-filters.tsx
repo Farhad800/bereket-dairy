@@ -54,7 +54,7 @@ export default function ReportFilters({ range, from, to, today, selects }: { ran
                 aria-pressed={active === k}
                 className={cn(
                   "inline-flex min-h-9 shrink-0 items-center rounded-full border px-3 text-xs font-semibold",
-                  active === k ? "border-brand-600 bg-brand-600 text-white" : "border-line bg-surface hover:bg-surface-2",
+                  active === k ? "border-ink bg-ink text-surface" : "border-line bg-surface hover:bg-surface-2",
                 )}
               >
                 {t(`preset.${k}`)}
@@ -76,7 +76,21 @@ export default function ReportFilters({ range, from, to, today, selects }: { ran
       )}
       {selects.length > 0 && (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          {selects.map((f) => (
+          {selects.map((f) => f.kind === "text" ? (
+            <label key={f.name} className="text-xs font-semibold text-muted">
+              {f.label}
+              <input
+                defaultValue={f.value}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); go({ [f.name]: e.currentTarget.value.trim() }); } }}
+                onBlur={(e) => e.target.value.trim() !== f.value && go({ [f.name]: e.target.value.trim() })}
+                maxLength={80}
+                placeholder={t("typeAndEnter")}
+                className="mt-1 block min-h-11 w-full rounded-lg border border-line bg-surface px-3 text-sm text-ink"
+                dir="ltr"
+                aria-label={f.label}
+              />
+            </label>
+          ) : (
             <label key={f.name} className="text-xs font-semibold text-muted">
               {f.label}
               <select

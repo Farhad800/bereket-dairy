@@ -2,10 +2,6 @@ import { db, type Tx } from "./db";
 
 const PREFIX = {
   order: "ORD",
-  maintenance: "MR",
-  service: "SR",
-  inspection: "QC",
-  issue: "NCR",
   stockInput: "IN",
   stockOutput: "OUT",
   stockBuy: "BUY",
@@ -19,15 +15,14 @@ const PREFIX = {
   salesInvoice: "INV",
   purchaseInvoice: "PUR",
   customer: "C",
-  itemLabel: "LBL",
   itemMaterial: "MAT",
-  itemPackaging: "PKG",
+  itemProduct: "P",
 } as const;
 
 export type DocKind = keyof typeof PREFIX;
 
 /** Kinds numbered without a year: customer codes C-0001, C-0002… */
-const NO_YEAR: DocKind[] = ["customer", "itemLabel", "itemMaterial", "itemPackaging"];
+const NO_YEAR: DocKind[] = ["customer", "itemMaterial", "itemProduct"];
 
 /**
  * Atomic, gap-tolerant sequential numbers per kind and year, e.g. ORD-2026-0007.

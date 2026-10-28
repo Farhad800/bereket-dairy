@@ -13,9 +13,6 @@ export const NAV: NavGroup[] = [
   ]},
   { key: "operations", items: [
     { href: "/production", key: "production", icon: "Factory", perm: "production:view" },
-    { href: "/service", key: "service", icon: "Wrench", perm: "service:view" },
-    { href: "/history", key: "history", icon: "History", perm: "maintenance:view" },
-    { href: "/qc", key: "qc", icon: "ShieldCheck", perm: "qc:view" },
     { href: "/inventory", key: "inventory", icon: "Warehouse", perm: "warehouse:view" },
     { href: "/stock", key: "stock", icon: "ArrowLeftRight", perm: "stock:view" },
     { href: "/receipts", key: "receipts", icon: "Printer", perm: "receipts:manage" },
@@ -24,7 +21,6 @@ export const NAV: NavGroup[] = [
   ]},
   { key: "masterData", items: [
     { href: "/products", key: "products", icon: "Package", perm: "products:view" },
-    { href: "/assets", key: "assets", icon: "Cog", perm: "assets:view" },
   ]},
   { key: "insights", items: [
     { href: "/reports", key: "reports", icon: "BarChart3", perm: "reports:view" },

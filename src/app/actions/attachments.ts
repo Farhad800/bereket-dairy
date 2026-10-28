@@ -6,18 +6,8 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { run, UserError } from "@/lib/action";
-import { ATTACHABLE, isAttachable } from "@/lib/attachments";
+import { attachmentAccess, isAttachable } from "@/lib/attachments";
 import { ALLOWED_TYPES, MAX_FILE_BYTES, putFile } from "@/lib/storage";
-
-async function recordExists(type: string, id: string) {
-  switch (type) {
-    case "MaintenanceRequest": return db.maintenanceRequest.count({ where: { id } });
-    case "ServiceReport": return db.serviceReport.count({ where: { id } });
-    case "QcInspection": return db.qcInspection.count({ where: { id } });
-    case "QualityIssue": return db.qualityIssue.count({ where: { id } });
-    default: return 0;
-  }
-}
 
 /** Real file-type check from the first bytes — the browser's claimed type isn't trusted. */
 function sniff(buf: Buffer): string | null {
@@ -35,9 +25,9 @@ export async function uploadAttachmentsAction(fd: FormData) {
     const entityType = String(fd.get("entityType") ?? "");
     const entityId = String(fd.get("entityId") ?? "");
     if (!isAttachable(entityType)) throw new UserError("Files can't be attached here.");
-    const rule = ATTACHABLE[entityType];
-    if (!rule.add.some((p) => me.permissions.has(p))) throw new UserError("You don't have permission to add files here.");
-    if (!(await recordExists(entityType, entityId))) throw new UserError("That record no longer exists.");
+    const access = await attachmentAccess(entityType, entityId, me);
+    if (!access) throw new UserError("That record no longer exists.");
+    if (!access.add) throw new UserError("You don't have permission to add files here.");
 
     const files = fd.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
     if (files.length === 0) throw new UserError("Choose at least one photo or PDF.");
@@ -55,7 +45,6 @@ export async function uploadAttachmentsAction(fd: FormData) {
       });
       await audit({ userId: me.id, action: "file.upload", entityType, entityId, after: { attachment: a.id, filename: a.filename, size: a.size } });
     }
-    revalidatePath("/service");
-    revalidatePath("/qc");
+    revalidatePath(`/stock/${entityId}`);
   });
 }

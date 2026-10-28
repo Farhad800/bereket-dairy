@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { apiUser } from "@/lib/auth";
+import { apiUser, canSeeMoney } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { REPORT_BY_KEY, parseQuery, queryParams, reportAllowed } from "@/lib/reports/registry";
 import { cellCsv, toCsv, totalsRow, type T } from "@/lib/reports/format";
@@ -16,7 +16,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
   const sp = Object.fromEntries(new URL(req.url).searchParams);
   const q = parseQuery(def, sp);
   const t = (await getTranslations()) as unknown as T;
-  const result = await def.run(q);
+  const result = await def.run(q, { money: canSeeMoney(me) });
 
   const header = result.columns.map((c) => {
     const label = t(c.label);
@@ -33,7 +33,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ key: str
 
   await audit({ userId: me.id, action: "report.export", entityType: "Report", entityId: key, after: { format: "csv", ...Object.fromEntries(queryParams(def, q)), rows: result.rows.length } });
 
-  const name = def.filters.includes("range") ? `bereket-${key}-${q.from}_${q.to}.csv` : `bereket-${key}-${q.to}.csv`;
+  const name = def.filters.includes("range") ? `bereket-dairy-${key}-${q.from}_${q.to}.csv` : `bereket-dairy-${key}-${q.to}.csv`;
   return new Response(toCsv(header, rows), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

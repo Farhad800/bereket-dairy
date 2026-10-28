@@ -16,13 +16,13 @@ export default async function EditOrderPage({ params }: { params: Promise<{ id: 
   if (order.status !== "OPEN") redirect(`/orders/${id}`);
   const products = await db.product.findMany({
     where: { OR: [{ archivedAt: null, kind: "PRODUCT" }, { id: { in: order.lines.map((l) => l.productId) } }] },
-    orderBy: [{ mold: { code: "asc" } }, { code: "asc" }],
-    select: { id: true, name: true, name2: true, code: true, mold: { select: { code: true } } },
+    orderBy: { code: "asc" },
+    select: { id: true, name: true, name2: true, code: true },
   });
   return (
     <>
       <PageHeader title={`${t("common.edit")} · ${order.number}`} />
-      <OrderForm products={products.map((p) => ({ ...p, mold: p.mold?.code }))} initial={{ id: order.id, quantities: Object.fromEntries(order.lines.map((l) => [l.productId, l.quantity])) }} />
+      <OrderForm products={products} initial={{ id: order.id, quantities: Object.fromEntries(order.lines.map((l) => [l.productId, l.quantity])) }} />
     </>
   );
 }

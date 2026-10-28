@@ -4,16 +4,16 @@ import { ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
 import { can, canSeeMoney, pageUser } from "@/lib/auth";
 import { fifoState } from "@/lib/fifo";
 import { db } from "@/lib/db";
-import { currentShift, formatDate, formatNumber } from "@/lib/time";
+import { formatDate, formatNumber } from "@/lib/time";
 import { dayValue, todayYmd } from "@/lib/production";
-import { Card, EmptyState, LinkButton, PageHeader, cn } from "@/components/ui";
+import { lossOf } from "@/lib/recipe-math";
+import { Card, EmptyState, LinkButton, PageHeader } from "@/components/ui";
 import EntryRow from "./entry-row";
 
-export const metadata = { title: "Daily production" };
-const SHIFTS = ["A", "B", "C"] as const;
+export const metadata = { title: "Production" };
 const shiftDay = (ymd: string, d: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) + d * 86_400_000).toISOString().slice(0, 10);
 
-/** What was produced on a day, by shift — the factory's daily production record. */
+/** What was produced on a day: batches, pieces and loss per run — the factory's production record. */
 export default async function ProductionPage({ searchParams }: { searchParams: Promise<{ day?: string; product?: string }> }) {
   const me = await pageUser("production:view");
   const t = await getTranslations();
@@ -25,33 +25,38 @@ export default async function ProductionPage({ searchParams }: { searchParams: P
 
   const entries = await db.productionEntry.findMany({
     where: product ? { productId: product.id, day: { gte: dayValue(shiftDay(today, -60)) } } : { day: dayValue(day) },
-    orderBy: product ? [{ day: "desc" }, { shift: "asc" }] : [{ shift: "asc" }, { product: { code: "asc" } }],
+    orderBy: product ? [{ day: "desc" }, { createdAt: "desc" }] : [{ product: { code: "asc" } }, { createdAt: "asc" }],
     take: 2000,
-    include: { product: { select: { code: true, name: true } }, _count: { select: { inspections: true } } },
+    include: { product: { select: { code: true, name: true } } },
   });
   const users = await db.user.findMany({ where: { id: { in: [...new Set(entries.map((e) => e.createdById))] } }, select: { id: true, fullName: true } });
   const who = (id: string) => users.find((u) => u.id === id)?.fullName ?? "—";
   const n = (v: number) => formatNumber(v, locale);
   const total = entries.reduce((s, e) => s + e.quantity, 0);
-  const byShift = Object.fromEntries(SHIFTS.map((s) => [s, entries.filter((e) => e.shift === s).reduce((a, e) => a + e.quantity, 0)]));
-  const shiftNow = currentShift();
+  const batches = Math.round(entries.reduce((s, e) => s + Number(e.batches), 0) * 1000) / 1000;
+  const losses = entries.map((e) => lossOf(Number(e.batches), e.quantity, e.expectedPerBatch)).filter((l): l is NonNullable<typeof l> => !!l);
+  const expected = losses.reduce((s, l) => s + l.expected, 0);
+  const lost = losses.reduce((s, l) => s + l.lost, 0);
   const canFix = can(me, "production:edit");
   const fifo = canSeeMoney(me) ? await fifoState() : null; // the real cost of each run, from the batches it used
   const runCost = (id: string) => {
     const c = fifo?.entryCost(id);
     return c && c.pieces > 0 ? { run: c.cost, perPiece: c.cost / c.pieces, complete: c.complete } : null;
   };
-  const row = (e: (typeof entries)[number]) => ({
-    cost: runCost(e.id),
-    id: e.id, day: formatDate(e.day, locale), shift: e.shift, product: `${e.product.code} · ${e.product.name}`, quantity: e.quantity,
-    qcStatus: e.qcStatus, by: who(e.createdById), locked: e._count.inspections > 0,
-  });
+  const row = (e: (typeof entries)[number]) => {
+    const l = lossOf(Number(e.batches), e.quantity, e.expectedPerBatch);
+    return {
+      cost: runCost(e.id),
+      id: e.id, day: formatDate(e.day, locale), product: `${e.product.code} · ${e.product.name}`, quantity: e.quantity, batches: Number(e.batches),
+      expected: l?.expected ?? null, lost: l?.lost ?? null, lossPct: l?.pct ?? null, by: who(e.createdById), notes: e.notes,
+    };
+  };
 
   return (
     <>
       <PageHeader
         title={t("nav.production")}
-        subtitle={product ? `${product.code} · ${product.name} — ${t("prod.last60")}` : t("prod.shiftNow", { shift: shiftNow })}
+        subtitle={product ? `${product.code} · ${product.name} — ${t("prod.last60")}` : undefined}
         actions={can(me, "production:create") && <LinkButton href="/production/daily"><ClipboardList className="size-4" /> {t("daily.title")}</LinkButton>}
       />
 
@@ -74,12 +79,18 @@ export default async function ProductionPage({ searchParams }: { searchParams: P
           <p className="mt-1 text-3xl font-bold tabular-nums">{n(total)}</p>
           <p className="text-xs text-muted">{t("prod.entriesN", { n: entries.length })}</p>
         </Card>
-        {SHIFTS.map((s) => (
-          <Card key={s} className={cn(!product && day === today && s === shiftNow && "ring-2 ring-brand-400")}>
-            <p className="text-xs text-muted">{t(`rep.shift.${s}`)}</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums">{n(byShift[s])}</p>
-          </Card>
-        ))}
+        <Card>
+          <p className="text-xs text-muted">{t("daily.batches")}</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums">{n(batches)}</p>
+        </Card>
+        <Card>
+          <p className="text-xs text-muted">{t("prod.expected")}</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums">{expected ? n(expected) : "—"}</p>
+        </Card>
+        <Card>
+          <p className="text-xs text-muted">{t("prod.lost")}</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums" data-testid="day-loss">{expected ? `${n(lost)} (${n(Math.round((lost / expected) * 10000) / 100)}%)` : "—"}</p>
+        </Card>
       </div>
 
       {entries.length === 0 ? (
@@ -89,11 +100,11 @@ export default async function ProductionPage({ searchParams }: { searchParams: P
         </EmptyState>
       ) : (
         <Card className="p-0 sm:p-0">
-          <div className="hidden grid-cols-[3rem_1fr_7rem_8rem_8rem] gap-3 border-b border-line bg-surface-2 px-4 py-2 text-xs font-semibold text-muted md:grid">
-            <span>{product ? t("prod.day") : t("rep.col.shift")}</span><span>{t("order.product")}</span><span className="text-end">{t("rep.col.qty")}</span><span>{t("rep.col.qc")}</span><span />
+          <div className="hidden grid-cols-[6rem_1fr_6rem_7rem_9rem_7rem] gap-3 border-b border-line bg-surface-2 px-4 py-2 text-xs font-semibold text-muted md:grid">
+            <span>{t("prod.day")}</span><span>{t("order.product")}</span><span className="text-end">{t("daily.batches")}</span><span className="text-end">{t("daily.produced")}</span><span className="text-end">{t("prod.lost")}</span><span />
           </div>
           <ul className="divide-y divide-line">
-            {entries.map((e) => <EntryRow key={e.id} e={row(e)} showDay={!!product} canFix={canFix} />)}
+            {entries.map((e) => <EntryRow key={e.id} e={row(e)} canFix={canFix} />)}
           </ul>
         </Card>
       )}

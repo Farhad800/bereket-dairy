@@ -1,6 +1,6 @@
 /**
  * Baseline setup — safe to run any number of times (idempotent).
- * Creates departments, built-in roles, defect categories, settings,
+ * Creates departments, built-in roles, settings,
  * and the FIRST administrator only if no administrator exists yet.
  *
  *   ADMIN_USERNAME=admin ADMIN_FULLNAME="..." npm run db:seed
@@ -19,21 +19,8 @@ const DEPARTMENTS = [
   ["ADMIN", "Administration"],
   ["SALES", "Sales & Planning"],
   ["PROD", "Production"],
-  ["SERVICE", "Technical Service"],
-  ["QC", "Quality Control"],
   ["WH", "Warehouse"],
-];
-
-const DEFECTS = [
-  ["DIM", "Incorrect dimensions"],
-  ["COLOR", "Color mismatch"],
-  ["CRACK", "Cracks"],
-  ["DEFORM", "Deformation / warpage"],
-  ["SHORT", "Incomplete molding (short shot)"],
-  ["FLASH", "Flash / excess plastic"],
-  ["SURFACE", "Surface defects (sink marks, flow lines, burns)"],
-  ["CONTAM", "Contamination / black specks"],
-  ["OTHER", "Other"],
+  ["ACC", "Accounts"],
 ];
 
 
@@ -58,17 +45,10 @@ async function main() {
     skipDuplicates: true,
   });
 
-  for (const [code, name] of DEFECTS) {
-    await db.defectCategory.upsert({ where: { code }, update: {}, create: { code, name } });
-  }
-
   const settings: Record<string, unknown> = {
-    "factory.name": "Bereket Plastic",
+    "factory.name": "Bereket Dairy",
     "factory.timezone": process.env.FACTORY_TIMEZONE ?? "Asia/Baghdad",
-    // QC samples daily production entries at random; products flagged "QC required" are shown first.
-    "qc.policy": "random",
-    "shifts": { A: "07:00-15:00", B: "15:00-23:00", C: "23:00-07:00" },
-    "units.default": "pcs",
+    "units": { products: "pcs", ingredients: ["kg", "pcs"] },
   };
   for (const [key, value] of Object.entries(settings)) {
     await db.setting.upsert({ where: { key }, update: {}, create: { key, value: value as never } });

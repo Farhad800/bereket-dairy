@@ -12,6 +12,7 @@ export function cellText(col: Column, v: Cell | Record<string, string>, t: T, lo
   const n = (x: number) => formatNumber(x, locale);
   switch (col.type) {
     case "int": return n(Number(v));
+    case "qty": return Number(v).toLocaleString(locale === "ar" ? "en" : locale, { maximumFractionDigits: 6 });
     case "signed": return Number(v) > 0 ? `+${n(Number(v))}` : `−${n(Math.abs(Number(v)))}`;
     case "pct": return `${n(Number(v))}%`;
     case "hours": return t("rep.unit.h", { n: n(Number(v)) });
@@ -28,7 +29,7 @@ export function cellText(col: Column, v: Cell | Record<string, string>, t: T, lo
 export function cellCsv(col: Column, v: Cell | Record<string, string>, t: T): string | number {
   if (isEmpty(v)) return "";
   switch (col.type) {
-    case "int": case "signed": case "pct": case "hours": case "days": return Number(v);
+    case "int": case "qty": case "signed": case "pct": case "hours": case "days": return Number(v);
     case "date": return toFactoryDateInput(v as Date);
     case "datetime": return toFactoryDateTimeInput(v as Date).replace("T", " ");
     case "status": return col.ns && !String(v).startsWith("=") ? t(`${col.ns}.${String(v)}`) : String(v).replace(/^=/, "");
@@ -44,7 +45,7 @@ export function kpiText(k: Kpi, t: T, locale: string) {
 
 export function totalsRow(columns: Column[], rows: Row[]): Row {
   const out: Row = {};
-  for (const c of columns) if (c.total) out[c.key] = Math.round(rows.reduce((s, r) => s + Number(r[c.key] ?? 0), 0) * 10) / 10;
+  for (const c of columns) if (c.total) out[c.key] = Math.round(rows.reduce((s, r) => s + Number(r[c.key] ?? 0), 0) * (c.type === "qty" ? 1e6 : 10)) / (c.type === "qty" ? 1e6 : 10);
   return out;
 }
 
