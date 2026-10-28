@@ -1,46 +1,114 @@
 # Security
 
+Passing tests show that the controls below behave as intended in the tested cases. They do **not** make the system "secure" or
+"production-ready" on their own — see *Known limits* at the end, and have the deployment reviewed before real data goes in.
+
 ## Controls in place
 
 **Sign-in and sessions**
-- Individual accounts only; passwords hashed with bcrypt (cost 12); minimum 10 characters with letters and numbers.
-- Temporary passwords (new employee, reset) must be changed at first sign-in.
-- 5 failed attempts lock the account for 15 minutes; the error message is the same for "unknown user" and "wrong password".
-- Session = random 256-bit token in an `HttpOnly`, `SameSite=Lax`, `Secure` (production) cookie; the database stores only its SHA-256 hash; 12-hour lifetime.
-- Disabling an employee deletes all their sessions at once.
-- The first administrator can only be created with a one-time setup code, and `/setup` disappears once an administrator exists.
+- Individual accounts only; bcrypt (cost 12); minimum 10 characters with letters and numbers.
+- Temporary passwords (new employee, reset) must be changed at first sign-in; until then every server action is refused.
+- 5 failed attempts lock the account for 15 minutes; "unknown user" and "wrong password" give the same message.
+- Session = random 256-bit token in an `HttpOnly`, `SameSite=Lax`, `Secure` (production) cookie; only its SHA-256 hash is stored; 12-hour lifetime.
+- Disabling an employee deletes all their sessions at once. Changing a password signs out the other devices.
+- The first administrator needs a one-time setup code; `/setup` disappears once an administrator exists.
 
-**Authorisation**
-- Permissions are `resource:action` pairs stored per role and checked **on the server** in every server action, API route and protected page. Hidden buttons are a convenience only.
-- Every employee can read business records (global visibility rule); create/edit/approve/export/archive/manage depend on role.
-- Exports (CSV/PDF) need `reports:export`; the audit log needs `audit:view` / `audit:export`; go-live tools need `settings:manage` **and** the administrator's password.
+**Authorisation (server-side)**
+- Permissions are `resource:action` pairs per role, checked **on the server** in every server action, API route and protected page.
+- **Warehouse vs accountant:** prices, costs, values, payments, phone numbers, receipts and money reports require a money permission
+  (`stock:buy`, `stock:sell` or `cash:view`). For everyone else they are removed from the **page data** itself, not just hidden;
+  money columns are left out of CSV exports; scanned papers on Buy/Sell documents can't be opened.
+- The Warehouse Team can record Input and Output documents only; a crafted request for a Buy, Sell, cost change, production entry or safe entry is refused.
+
+**Stock integrity**
+- Every save that moves stock runs in one database transaction that first locks the affected item rows (`SELECT … FOR UPDATE`, in a fixed order to avoid deadlocks),
+  then checks the stock, then writes. Two people can't take the same kilo of milk at the same moment.
+- Stock never goes below zero: production, Output and Sell are refused when an item is short. Edits to older documents (a purchase reduced, a production entry
+  corrected down) are checked against the running balance from that moment on. The refusal names each item with needed / in stock / short, and nothing is saved.
+- Each form submission carries a key; the same submission sent twice (double press, retry after a lost reply) is applied once.
+- `scripts/check-integrity.ts` re-checks the whole ledger read-only.
 
 **Requests and data**
-- Next.js server actions reject cross-site requests (Origin must match the host) — CSRF protection.
-- All database access goes through Prisma with bound parameters; raw SQL uses tagged templates (parameterised). Report filters are validated against allow-lists.
-- React escapes all text; user comments are shown as text, never HTML.
-- CSV exports neutralise spreadsheet formulas (`=`, `+`, `-`, `@` at the start of a cell).
-- Uploads: type checked from the file's bytes (JPG/PNG/WEBP/HEIC/PDF only), 8 MB limit, stored in a private Blob store, served only after a permission check with `nosniff` and a sandboxing Content-Security-Policy.
-- Important operations run in database transactions (daily production + stock in, stock out, QC rejects, corrections) with row locks on the product so stock can never go below zero.
-- Audit log of sensitive actions with before/after values; no one can edit or delete it.
+- Next.js server actions reject cross-site requests (Origin must match) — CSRF protection.
+- Prisma with bound parameters; raw SQL uses parameterised tagged templates; report filters are validated against allow-lists.
+- React escapes all text; CSV exports neutralise spreadsheet formulas.
+- Uploads: type checked from the file's bytes (JPG/PNG/WEBP/HEIC/PDF), 8 MB limit, private Blob store, served after a permission check with `nosniff` and a sandboxing CSP.
+- Audit log of sensitive actions with before/after values and reasons; nobody can edit or delete it.
 
-**Transport and headers**
-- HTTPS only (HSTS 2 years), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, restrictive `Permissions-Policy`, no `X-Powered-By`.
-- Secrets (database URLs, Blob token) exist only as server environment variables — never in browser code or the repository.
-- The offline service worker caches only static assets and the offline page, never signed-in pages or factory data.
+**Transport, headers, secrets**
+- HSTS, `X-Frame-Options: DENY`, `nosniff`, strict referrer policy, restrictive `Permissions-Policy`, no `X-Powered-By`.
+- Secrets (database URLs, Blob token, VAPID private key) exist only as server environment variables of the `bereket-dairy` Vercel project — never in browser code or the repository (`.env*` is git-ignored; only `.env.example`, without values, is committed).
+- The service worker caches only static files and the offline page, never signed-in pages or factory data.
+- Separation: the dairy code contains no connection details for the plastic system's database or Blob store; the test scripts refuse any non-localhost database.
 
-## Test results (22 Oct 2026)
+## Role-permission matrix (defaults)
 
-`tests/e2e/security.py` — **28/28 passed**:
-signed-out access to pages and APIs refused; forged session cookie refused; security headers present; setup page closed; no user enumeration; lockout after 5 failures; only token hashes and bcrypt hashes stored; cookie HttpOnly/SameSite and unreadable from JavaScript; a Production user replaying a captured *administrator* server action is refused by the server; the same request with a foreign Origin is rejected (CSRF), while the genuine request works (control); disabled employee signed out immediately and can't sign in; SQL-like input in search and filters is harmless; HTML/script in a comment is shown as text; an HTML file renamed `.pdf` is rejected; unknown file ids give 404; another employee's notification can't be opened; security events are in the audit log.
+Every active employee can *view* orders, production, warehouse, stock movements, products, reports and the employee list. Money is visible only with a ✔ in `stock:buy`, `stock:sell` or `cash:view`.
 
-The acceptance test (`tests/e2e/acceptance.py`) repeats the backend-rejection checks from an empty database.
+| Permission | Admin | Accountant | Sales | Production | Warehouse |
+|---|:-:|:-:|:-:|:-:|:-:|
+| `orders:view` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| `orders:create` | ✔ |  | ✔ |  |  |
+| `orders:edit` | ✔ |  | ✔ |  |  |
+| `orders:approve` | ✔ |  | ✔ |  |  |
+| `orders:export` | ✔ | ✔ | ✔ |  |  |
+| `orders:archive` | ✔ |  | ✔ |  |  |
+| `production:view` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| `production:create` | ✔ |  |  | ✔ |  |
+| `production:edit` | ✔ |  |  | ✔ |  |
+| `production:export` | ✔ | ✔ |  |  |  |
+| `warehouse:view` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| `warehouse:export` | ✔ | ✔ |  |  | ✔ |
+| `stock:view` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| `stock:input` | ✔ | ✔ |  |  | ✔ |
+| `stock:output` | ✔ | ✔ |  |  | ✔ |
+| `stock:buy` | ✔ | ✔ |  |  |  |
+| `stock:sell` | ✔ | ✔ |  |  |  |
+| `receipts:manage` | ✔ | ✔ |  |  |  |
+| `customers:view` | ✔ | ✔ |  |  |  |
+| `customers:manage` | ✔ | ✔ |  |  |  |
+| `cash:view` | ✔ | ✔ |  |  |  |
+| `cash:in` | ✔ | ✔ |  |  |  |
+| `cash:out` | ✔ | ✔ |  |  |  |
+| `cash:exchange` | ✔ | ✔ |  |  |  |
+| `cash:transfer` | ✔ | ✔ |  |  |  |
+| `cash:manage` | ✔ | ✔ |  |  |  |
+| `cash:export` | ✔ | ✔ |  |  |  |
+| `products:view` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| `products:create` | ✔ | ✔ |  |  |  |
+| `products:edit` | ✔ | ✔ |  |  |  |
+| `products:archive` | ✔ |  |  |  |  |
+| `products:export` | ✔ | ✔ |  |  |  |
+| `reports:view` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| `reports:export` | ✔ | ✔ | ✔ |  | ✔ |
+| `users:view` | ✔ | ✔ | ✔ | ✔ | ✔ |
+| `users:manage` | ✔ |  |  |  |  |
+| `roles:view` | ✔ |  |  |  |  |
+| `roles:manage` | ✔ |  |  |  |  |
+| `settings:view` | ✔ |  |  |  |  |
+| `settings:manage` | ✔ |  |  |  |  |
+| `audit:view` | ✔ | ✔ |  |  |  |
+| `audit:export` | ✔ |  |  |  |  |
 
-`npm audit --omit=dev`: **0 known vulnerabilities** (patched `postcss` and `deepmerge-ts` are pinned through `overrides` in package.json).
+`reports:export` for the Warehouse Team covers quantity reports only; money reports stay closed without a money permission.
+The administrator can change the matrix in Administration → Roles & permissions; the Administrator role always keeps every permission.
+
+## Test results (28 Oct 2026, local test databases, synthetic data only)
+
+- `tests/e2e/security.py` — **28/28**: signed-out access refused; forged session cookie refused; security headers; setup page closed; no user enumeration; lockout; only hashes stored; cookie flags;
+  a Production user replaying an administrator's server action is refused; foreign Origin rejected (CSRF) while the genuine request works; disabled employee signed out; SQL-like input harmless; HTML shown as text; HTML renamed `.pdf` rejected; unknown file ids 404; another employee's notification can't be opened; security events audited.
+- `tests/e2e/m3-m4.py` — **29/29**: warehouse sees no prices, totals, payments or phones — also not in the page data — and gets no money report or CSV; an administrator on a temporary password is refused everywhere.
+- `tests/e2e/dairy.py` — **90/90**, including: shortages refused with the item named and nothing saved; simultaneous saves (only one of two can take the last 25 kg of sugar); the same submission ×3 applied once; warehouse refused Buy, production and cost changes; warehouse CSV without price columns.
+- `npm audit --omit=dev`: **0 known vulnerabilities**, after pinning `zod` 4.6.7 through `overrides` (it came in through `@vercel/blob`).
 
 ## Known limits / recommendations
 
-- Lockout is per account. A slow guessing attack spread over many accounts isn't rate-limited per IP; Vercel's DDoS protection and the Vercel Firewall (rate-limit rule on `/login`) can add that.
-- Two-factor sign-in is not built in. Use strong passwords; consider 2FA for administrators in a later version.
-- Keep the GitHub repository **private** and mark `BLOB_READ_WRITE_TOKEN` as *Sensitive* in Vercel.
-- Review dependency updates monthly (`npm audit`); plan the move to Next.js 16 / Prisma 7 when convenient.
+- **Both GitHub repositories are public today.** Make `Farhad800/bereket-dairy` private before real data or settings go in.
+  The plastic repository's `PROGRESS.md` contains an administrator password: change that password and remove it from the repository history.
+  This was **not** done here, because the plastic system is out of scope.
+- Mark `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `BLOB_READ_WRITE_TOKEN` and `VAPID_PRIVATE_KEY` as **Sensitive** in the `bereket-dairy` Vercel project.
+- Preview deployments share the production variables unless scoped (DEPLOYMENT.md §2).
+- Lockout is per account, not per IP; add a Vercel Firewall rate-limit rule on `/login`.
+- No two-factor sign-in.
+- Tests ran on local PostgreSQL 16, not on Neon; repeat the smoke checks after the first deployment.
+- Review dependencies monthly (`npm audit`).

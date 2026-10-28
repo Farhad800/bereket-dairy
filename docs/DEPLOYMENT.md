@@ -1,87 +1,101 @@
 # Deployment guide
 
-Bereket Plastic Factory Management System (FMS) — how it is hosted, configured, set up and updated.
+Bereket Dairy Factory Management System — how it is hosted, configured, set up and updated.
+
+> **Status (28 Oct 2026): not deployed.** Nothing goes live until the owner explicitly says *"Yes, deploy now."*
+> The steps below are the plan for that moment; none of them has been run against the live services yet.
+
+## 0. Keep it separate from Bereket Plastic
+
+| | Bereket Dairy (this system) | Bereket Plastic (do not touch) |
+|---|---|---|
+| GitHub | `Farhad800/bereket-dairy` | `Farhad800/berecket` |
+| Vercel project | `bereket-dairy` | `bereket-fms` |
+| Neon database | the store connected to `bereket-dairy` only | the store connected to `bereket-fms` |
+| Blob store | a **new** private store, connected to `bereket-dairy` only | the plastic store |
+
+Before any deployment, check in Vercel → `bereket-dairy` → Settings → Environment Variables that `DATABASE_URL` points at the
+dairy database (its host name should match the dairy Neon store, not the plastic one). Never copy environment variables from the plastic project.
 
 ## 1. Where it runs and what it costs
 
-| Part | Service | Why | Cost / limits that matter |
-|---|---|---|---|
-| Web app + server code | **Vercel** (region `fra1`, Frankfurt — closest low-latency region to Iraq) | Built for Next.js, zero server maintenance, automatic HTTPS, instant rollback | **Hobby (free) is for non-commercial use only.** A factory system is commercial use, so move the project to **Vercel Pro** (USD 20 per developer seat per month; viewers are free) before go-live. Pro also keeps runtime logs for 1 day instead of 1 hour. |
-| Database | **Neon** PostgreSQL (Frankfurt), connected through the Vercel Marketplace | Managed PostgreSQL with point-in-time restore and branching | Free plan: restore window only **6 hours**. Recommended: **Launch** plan (usage-based; for this factory's size usually a few US dollars a month) and set the restore window to **7 days**. |
-| Photos & PDFs | **Vercel Blob**, *private* store | Files have no public link; served only through the app after a permission check | Hobby includes 1 GB storage / 10 GB transfer per month, then Blob stops until the month resets. Pro is usage-based (about USD 0.023 per GB-month). Phones shrink photos to ≤ 1600 px before upload, so 1 GB holds roughly 5,000–10,000 photos. |
-| Code | GitHub `Farhad800/berecket` | Source of truth; nightly backups run here (GitHub Actions) | Free. Make the repository **private**. |
-
-Everything uses standard PostgreSQL and Node.js, so it can be moved to another host (a local server in the factory, another cloud) without changing the code — only the environment variables change.
+| Part | Service | Notes |
+|---|---|---|
+| Web app + server code | **Vercel** | Built for Next.js; automatic HTTPS; instant rollback. **Hobby (free) is for non-commercial use only** — a factory system is commercial use, so plan for Vercel **Pro** before go-live. |
+| Database | **Neon** PostgreSQL, connected through the Vercel Marketplace | Free plan restore window is short (hours). Recommended: a paid plan with a **7-day** restore window. |
+| Scanned papers (photos / PDFs on stock documents) | **Vercel Blob**, *private* store | Files have no public link; served only through the app after a permission check. |
+| Code | GitHub `Farhad800/bereket-dairy` | Make the repository **private** before real data goes in (it is public today). Nightly backups run here. |
 
 ## 2. Environments
 
 | | Local development | Testing | Production |
 |---|---|---|---|
-| URL | http://localhost:3000 | http://localhost:3001 (acceptance) or a Vercel *Preview* URL | https://bereket-fms.vercel.app |
-| Database | local PostgreSQL `bereket` | throw-away database `bereket_accept` (recreated for every run) | Neon `main` branch |
-| Files | `./.uploads` folder | `./.uploads` | private Vercel Blob store |
+| URL | http://localhost:3000 | http://localhost:3001 | the `bereket-dairy` Vercel domain (e.g. `bereket-dairy.vercel.app`) |
+| Database | local PostgreSQL `dairy` | throw-away local database `dairy_accept` (recreated for every suite) | the dairy Neon database |
+| Files | `./.uploads` | `./.uploads` | private Blob store of `bereket-dairy` |
 | Demo accounts | allowed (`npm run demo:add`) | created by the tests | **never** — the scripts refuse unless `ALLOW_DEMO=1` |
-| `NODE_ENV` | development | production build | production |
 
-Preview deployments on Vercel are protected by Vercel login (Deployment Protection → *Standard*), so half-finished work is never public.
+**Preview deployments share the production environment variables** unless you scope them. The build step `scripts/db-deploy.mjs`
+skips migrations and seed on preview builds, but a running preview still reads and writes the dairy database. Either scope the database
+variables to *Production* only, or create a Neon branch for previews. Keep Deployment Protection (Vercel login) on for previews.
 
 ## 3. Environment variables
 
-Set in Vercel → Project → Settings → Environment Variables (never in the code, never in the browser).
+Set in Vercel → `bereket-dairy` → Settings → Environment Variables. Mark every secret as **Sensitive**.
 
 | Variable | Required | What it is |
 |---|---|---|
-| `DATABASE_URL` | yes | Neon **pooled** connection string (used by the app). Added automatically by the Neon integration. |
-| `DATABASE_URL_UNPOOLED` | yes | Neon **direct** connection string (used for migrations and backups). Added by the Neon integration. |
-| `BLOB_READ_WRITE_TOKEN` | yes (production) | Token of the private Blob store. Mark it **Sensitive**. Without it, files are stored on local disk (development only). |
-| `FACTORY_TIMEZONE` | yes | `Asia/Baghdad`. Drives "today", shifts A/B/C and every displayed time. |
-| `SETUP_TOKEN` | only for first setup | One-time code that allows creating the first administrator at `/setup`. Replace it with a long random value (or delete it) once the admin exists. |
-| `ALLOW_DEMO` | no | Set to `1` only if you deliberately want demo scripts to run against production. Leave unset. |
+| `DATABASE_URL` | yes | Neon **pooled** connection string (used by the app). Added by the Neon integration. |
+| `DATABASE_URL_UNPOOLED` | yes | Neon **direct** connection string (migrations, backups). Added by the Neon integration. |
+| `BLOB_READ_WRITE_TOKEN` | yes (production) | Token of the dairy project's private Blob store. Without it, files go to local disk (development only). |
+| `FACTORY_TIMEZONE` | yes | `Asia/Baghdad`. Drives "today" and every displayed time. |
+| `SETUP_TOKEN` | first setup only | One-time code for creating the first administrator at `/setup`. Remove it once the admin exists. |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | optional | Web Push notifications. Generate a **new** pair for dairy (`npx web-push generate-vapid-keys`); never reuse the plastic keys. |
+| `FIFO_START` | optional | Oldest date FIFO costing looks at (default 2000-01-01). |
+| `ALLOW_DEMO` | no | Leave unset in production. |
 
-`.env.example` lists the same variables for local development.
+`.env.example` lists the same variables (without values) for local development.
 
-## 4. First deployment (already done for bereket-fms.vercel.app)
+## 4. First deployment (after "Yes, deploy now")
 
-1. Import the GitHub repository into Vercel (framework: Next.js, region Frankfurt).
-2. Vercel → Storage → add **Neon Postgres** (Frankfurt) and connect it to the project → `DATABASE_URL` and `DATABASE_URL_UNPOOLED` appear.
-3. Vercel → Storage → create a **Blob** store, access **Private**, connect it → `BLOB_READ_WRITE_TOKEN` appears.
-4. Add `FACTORY_TIMEZONE=Asia/Baghdad` and a temporary `SETUP_TOKEN`.
-5. Build command is `npm run vercel-build`, which runs, in order:
-   `make-icons` → `prisma generate` → **`prisma migrate deploy`** → **seed** (roles, departments, defect types, storage locations — idempotent) → `next build`.
-6. Deploy. Check `https://<your-domain>/api/health` → `{"status":"ok"}`.
+1. Request push access and push `main` to `Farhad800/bereket-dairy`; connect the repository to the existing Vercel project `bereket-dairy` (framework Next.js).
+2. Confirm the Neon store connected to `bereket-dairy` is the dairy one → `DATABASE_URL` and `DATABASE_URL_UNPOOLED` exist.
+3. Vercel → Storage → **Create Blob store**, access **Private**, connect it to `bereket-dairy` only → `BLOB_READ_WRITE_TOKEN` appears.
+4. Add `FACTORY_TIMEZONE=Asia/Baghdad` and a long random `SETUP_TOKEN`.
+5. Build command (from `package.json`) is `npm run vercel-build`:
+   `make-icons` → `prisma generate` → `scripts/db-deploy.mjs` (**production only:** `prisma migrate deploy`, then the idempotent seed: roles, departments, settings) → `next build`.
+6. Deploy. Check `https://<domain>/api/health` → `{"status":"ok"}`.
+7. Open `/setup`, create the administrator, then remove `SETUP_TOKEN`.
 
-### Database migrations
+### Migrations
 
-- Schema changes are written as Prisma migrations in `prisma/migrations/` (`npm run db:migrate` locally).
-- Every deployment applies pending migrations automatically (`prisma migrate deploy`) **before** the new code goes live; if a migration fails, the build fails and the old version keeps running.
-- Never edit an applied migration; add a new one. Take a backup (or note the time for point-in-time restore) before deploying a migration that drops or rewrites data.
+The dairy database starts from two migrations:
+
+| Migration | What it does |
+|---|---|
+| `20261028120000_dairy_init` | Creates the whole dairy schema in one step (no plastic history). |
+| `20261028120100_dairy_base_data` | Adds the main safe (IQD/USD/EUR) and the standard expense categories. |
+
+Every deployment applies pending migrations before the new code goes live; if a migration fails, the build fails and the old version keeps running.
+Never edit an applied migration — add a new one. These migrations are for an **empty** dairy database; they are not meant to run on the plastic database.
 
 ## 5. Initial administrator
 
 1. With `SETUP_TOKEN` set and no administrator in the database, open `https://<domain>/setup`.
 2. Enter the setup code, employee ID, name, username and a strong password (10+ characters with letters and numbers).
-3. The page disappears for good once an administrator exists (`/setup` returns 404).
-4. In Vercel, change `SETUP_TOKEN` to a long random value or remove it.
+3. `/setup` returns 404 for good once an administrator exists. Remove `SETUP_TOKEN` in Vercel.
 
-Alternative (command line, e.g. for a self-hosted server): `ADMIN_USERNAME=admin npm run db:seed` prints a one-time temporary password that must be changed at first sign-in.
+Command-line alternative: `ADMIN_USERNAME=admin npm run db:seed` prints a one-time temporary password that must be changed at first sign-in.
 
 ## 6. Updating the application
 
-1. Changes are committed to the `main` branch on GitHub.
-2. A new production deployment is created from `main` (Vercel dashboard → *Deployments* → *Redeploy*, or connect the Git integration so every push deploys automatically).
-3. Vercel builds it, applies migrations, and switches traffic only when the build succeeds — no downtime.
-4. Verify `/api/health`, sign in, and open a couple of pages.
-5. **If something is wrong:** Vercel → Deployments → previous deployment → **Instant Rollback**. If a migration changed data, also restore the database to the time before the deployment (see BACKUP-RESTORE.md).
+1. Commit to `main`; Vercel builds it, applies migrations, and switches traffic only when the build succeeds.
+2. Verify `/api/health`, sign in, open a few pages, and run the read-only integrity check (OPERATIONS.md §4).
+3. **If something is wrong:** Vercel → Deployments → previous deployment → **Instant Rollback**. If a migration changed data, also restore the database (BACKUP-RESTORE.md).
 
-Users get the new version on their next page load; the installed home-screen app updates itself (its service worker only caches static files).
+## 7. Running on your own server instead (optional)
 
-## 7. Custom domain (optional)
-
-Vercel → Project → Settings → Domains → add e.g. `fms.bereketplastic.com` and create the DNS record Vercel shows. HTTPS certificates are automatic.
-
-## 8. Running on your own server instead (optional)
-
-Requirements: Node.js 20+, PostgreSQL 14+, a reverse proxy with HTTPS (Caddy or Nginx).
+Requirements: Node.js 20+, PostgreSQL 14+, a reverse proxy with HTTPS.
 
 ```bash
 npm ci
@@ -91,8 +105,3 @@ SETUP_TOKEN=<random> npm start     # then open /setup once
 ```
 
 Without `BLOB_READ_WRITE_TOKEN`, files are stored in `./.uploads` — include that folder in your backups.
-
-## Push notifications (Web Push)
-Set on Vercel (Production + Preview): `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (type *Sensitive* — server only), `VAPID_SUBJECT` (`mailto:` contact).
-Generate a new pair with `npx web-push generate-vapid-keys`. Changing the keys means every device has to turn notifications on again
-(the app re-registers devices automatically when permission is already granted).

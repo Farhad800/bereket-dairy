@@ -1,95 +1,90 @@
 # Operations guide (for the system administrator)
 
-Day-to-day running of the Bereket Plastic FMS. No programming needed for anything in sections 1–6.
-
-## Replacing the whole item list
-Administration → System → **Replace the item list** removes every product, sticker and material (machines, molds, employees and the audit log stay). Type `DELETE ITEMS` and your password. It is refused while any item is used by orders, production or stock — clear the test transactions first. Then import the corrected Excel file (Products → Import from Excel).
+Day-to-day running of the Bereket Dairy FMS. No programming needed for sections 1–3 and 5–7.
 
 ## 1. Daily and weekly checks
 
 | When | Check | Where |
 |---|---|---|
-| Daily | The site opens and you can sign in | https://bereket-fms.vercel.app |
-| Daily | Dashboard numbers look sensible (orders, production today, machines down) | Dashboard |
-| Weekly | Last night's backup is green | GitHub → Actions → *Nightly backup* |
-| Weekly | No unexpected errors | Vercel → Project → **Logs**, filter `"level":"error"` |
-| Monthly | Unused or departed employees are disabled | Administration → Employees |
-| Every 3 months | Restore drill | docs/BACKUP-RESTORE.md |
+| Daily | The site opens and you can sign in | the `bereket-dairy` Vercel domain |
+| Daily | Today's production was entered and the loss looks normal | Production · Reports → Production |
+| Daily | Warehouse ins and outs match the paper slips | Reports → Warehouse daily in/out |
+| Weekly | Last night's backup is green | GitHub → `Farhad800/bereket-dairy` → Actions → *Nightly backup (Bereket Dairy)* |
+| Weekly | Read-only integrity check is clean (§4) | command line |
+| Weekly | No unexpected errors | Vercel → `bereket-dairy` → Logs, filter `"level":"error"` |
+| Monthly | Departed employees are disabled | Administration → Employees |
+| Every 3 months | Restore drill | BACKUP-RESTORE.md |
 
-**Uptime alert (recommended, free):** create a monitor at a free uptime service (e.g. UptimeRobot) for `https://bereket-fms.vercel.app/api/health`, checking every 5 minutes, alerting by email/SMS. The address answers `{"status":"ok"}` only when the app **and** the database are working.
+**Uptime alert (recommended):** monitor `https://<domain>/api/health` every 5 minutes with a free uptime service. It answers `{"status":"ok"}` only when the app **and** the dairy database are working.
 
-## 2. Employees
+## 2. Employees and roles
 
-- **Add:** Administration → Employees → *New employee*. Choose the role and department. A **temporary password** is shown **once** — give it to the employee privately. At first sign-in they must choose their own password.
-- **Forgotten password:** *Reset password* on the employee's card → a new temporary password is shown once.
-- **Locked out:** after 5 wrong passwords the account locks for 15 minutes, then works again by itself. (Or reset the password.)
-- **Change role/department:** *Edit*. Takes effect on their next page.
-- **Roles & permissions:** Administration → Roles & permissions. Every department can always *see* all records; the matrix controls creating, editing, approving, exporting and archiving. You can create new roles (e.g. "Shift supervisor"). Built-in roles can be adjusted but not deleted.
+- **Add:** Administration → Employees → *New employee*. Pick the role. A **temporary password** is shown **once** — hand it over privately. The employee must choose their own at first sign-in, and can do nothing else until then.
+- **Forgotten password:** *Reset password* → new temporary password, shown once. Open sessions are sent back to *Change password*.
+- **Locked out:** 5 wrong passwords lock the account for 15 minutes.
+- **Roles:** Administration → Roles & permissions. Built-in roles: Administrator, Accountant, Sales Manager, Production Team, Warehouse Team. The full matrix is in SECURITY.md. Be careful giving `stock:buy`, `stock:sell` or `cash:view` to anyone: any one of them shows **all prices, values and money**.
 
-### When someone leaves the company
+### When someone leaves
 
-1. Administration → Employees → their card → **Disable**. They are signed out on every device **immediately** and can't sign in again.
-2. Do **not** delete the person — their name stays on the orders, reports and decisions they made (this is your audit trail).
-3. Reassign anything still open in their name: open maintenance requests (Technical Service), open quality issues (Quality Control).
-4. If they knew the administrator password or the backup passphrase, change those.
-5. If they had access to Vercel, Neon or GitHub, remove them there too.
-
-## 2b. Deleting versus archiving
-
-- **Delete** (products, machines, molds, orders) removes a record that was created by mistake and **never used**. Machines and molds need the *Assets: archive* permission, orders *Orders: archive*; deleting an order also needs a reason. Every delete is written to the audit log with what was deleted.
-- As soon as a record has history (an order with production, a machine with jobs or repairs…), the system refuses to delete it and says why. Use **Archive** instead (master data) or **Cancel** (orders): the record disappears from everyday lists and pickers but past orders, reports and traceability stay correct.
+1. Administration → Employees → **Disable**. They are signed out everywhere immediately.
+2. Don't delete them — their name stays on their records (audit trail).
+3. If they knew the admin password or the backup passphrase, change those. Remove them from Vercel, Neon and GitHub if they had access.
 
 ## 3. Starting real use (go-live)
 
-When testing is finished:
-
 1. Make sure a backup exists (Actions → Nightly backup → *Run workflow*, wait for green).
 2. Administration → **System**:
-   - **Demo employee accounts** → *Remove demo accounts* (accounts starting with `demo.`).
-   - **Clear test data before going live** → choose *Test transactions only* (keeps products, machines, molds) or *Everything*. Type `RESET`, enter your password, confirm.
-3. What is never deleted: employees, roles, departments, defect types, storage locations, the audit log. Numbering (ORD-, JOB-, LOT-…) starts again from 0001.
-4. Check machine statuses and mold positions (Machines & Molds) match the shop floor.
+   - **Demo employee accounts** → *Remove demo accounts* (usernames starting with `demo.`).
+   - **Clear test data before going live** → *Test transactions only* (orders, production, stock documents, safe entries; keeps products, recipes and items) or *Everything* (also products, items and customers). Type `RESET` and your password.
+3. Never deleted: employees, roles, departments, settings, the audit log.
+4. Enter **opening stock**: Stock Movements → New → **Input**, reason *Opening stock*, for every ingredient and product on the shelf. Production and sales are refused until the stock is there.
 
-This action is recorded in the audit log. Developers can do the same from the command line: `npx tsx scripts/go-live.ts preview | reset-operations --yes | reset-everything --yes | remove-demo-users --yes`.
+Command line (same logic): `npx tsx scripts/go-live.ts preview | reset-operations --yes | reset-everything --yes | remove-demo-users --yes`.
+It prints the database host first — check it is the **dairy** database.
 
-### Demonstration data (training / testing environments only)
+## 4. Read-only integrity check
 
-`npm run demo:add` creates one demo employee per department (password `Demo12345!`) plus demo products, Toyo machines and molds whose codes start with `DEMO-`. `npm run demo:remove` deletes them again. Both refuse to run against production unless `ALLOW_DEMO=1` is set.
+```bash
+DATABASE_URL=<dairy direct connection string> npx tsx scripts/check-integrity.ts
+```
 
-## 4. Audit log
+Runs inside a `READ ONLY` transaction and changes nothing. It reports:
 
-Insights → **Audit log** (permission *Audit: view*). Shows who did what and when, with old → new values and reasons: logins, employee and role changes, order changes, completions and deletions, daily production entries and corrections, maintenance steps, every QC decision, stock out and adjustments, report exports, go-live resets. Filter by time, person and record type; *Excel (CSV)* exports it (permission *Audit: export*). Entries can't be edited or deleted by anyone.
+1. products whose production stock differs from their production entries;
+2. any moment in the ledger when an item was below zero;
+3. production entries that gave back more of an item than they used.
 
-## 5. Photos and documents (attachments)
+Expected result: `no inconsistencies found.` Anything else: don't fix data by hand; take a backup and investigate the named records.
 
-- Only JPG, PNG, WEBP, HEIC photos and PDFs up to 8 MB; the server checks the real file content, not just the name. Phones shrink photos before upload.
-- Files are stored in a **private** store: there are no public links. Every view goes through the app, which checks that the person is signed in and may see that record.
-- Files are included in the nightly backup.
+## 5. Audit log
 
-## 6. Language and time zone
+Insights → **Audit log** (`audit:view`). Who did what and when, with old → new values and reasons: sign-ins, employee and role changes, orders, production entries and corrections, stock documents and their edits, safe entries, report exports, go-live resets. A save refused for missing stock leaves no entry, because nothing was saved. Nobody can edit or delete the log.
 
-- Each employee picks English, Arabic or Turkish (globe icon). Arabic switches to right-to-left.
-- All times are shown in the factory time zone (`FACTORY_TIMEZONE`, Asia/Baghdad). Shifts: A 07–15, B 15–23, C 23–07.
-- The Arabic and Turkish wording was machine-drafted; have a native speaker review it. Texts live in `messages/ar.json` and `messages/tr.json`.
+## 6. Scanned papers (attachments)
 
-## 7. Errors and monitoring (technical)
+- Only stock documents carry files (delivery notes, slips, invoices). JPG, PNG, WEBP, HEIC or PDF, up to 8 MB; the server checks the file's real content.
+- Files on **Buy** and **Sell** documents are visible only to money roles.
+- Files live in the dairy project's **private** Blob store; every view goes through the app's permission check. Included in the nightly backup.
 
-- When a page fails, the employee sees a friendly page with a short **ref** code. Every server error is logged as one JSON line with the same code (`digest`) — search for it in Vercel → Logs to find the cause.
-- Vercel keeps runtime logs for 1 hour (Hobby) / 1 day (Pro). For longer retention, Pro can forward logs with a *Log Drain*.
-- `/api/health` checks the database; use it for uptime monitoring.
-- Vercel → Observability shows response times and function errors.
+## 7. Language and time
 
-## 8. Updating, rolling back
+- English, Arabic (right-to-left) or Turkish per employee (globe icon). Arabic and Turkish wording needs a native speaker's review (`messages/ar.json`, `messages/tr.json`).
+- Times are in `FACTORY_TIMEZONE` (Asia/Baghdad). There is **one shift**: a production day is the calendar day.
 
-See DEPLOYMENT.md §6. In short: deploy from `main`; if anything is wrong, Vercel → Deployments → previous one → **Instant Rollback**.
+## 8. Errors and monitoring
+
+- A failed page shows a short **ref** code; the server log has the same code (`digest`) — search for it in Vercel → Logs.
+- `/api/health` checks the database.
 
 ## 9. Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Everyone sees "This page couldn't load" | Database unreachable or out of quota | Check `/api/health`; Neon console → project status/usage |
-| Photos don't upload / show | Blob quota reached (Hobby) or token missing | Vercel → Storage → Blob usage; check `BLOB_READ_WRITE_TOKEN` |
-| One employee can't sign in | Locked (5 wrong tries) or disabled | Wait 15 min or reset password; check *Active* |
-| Someone can't press a button they need | Role lacks that permission | Administration → Roles & permissions |
-| Times look 3 hours off | `FACTORY_TIMEZONE` missing | Set it to `Asia/Baghdad` and redeploy |
-| Install-to-home-screen banner doesn't appear | Already installed, or dismissed on that device | Browser menu → *Add to Home Screen* |
+| "Not enough stock. Nothing was saved." | An ingredient, packaging item or product is short | The message lists each item: needs, in stock, short. Record the missing Input/Buy first, then save again. |
+| Production says "No batch recipe yet" | The product has no ingredients per batch | Products & Recipes → product → add ingredients and pieces per batch |
+| Loss looks wrong | Pieces expected per batch not set or outdated | Product page → *Pieces expected from one batch* |
+| Warehouse user sees no prices | By design | Prices need `stock:buy`, `stock:sell` or `cash:view` |
+| Everyone sees "This page couldn't load" | Database unreachable or out of quota | `/api/health`; Neon console |
+| Uploads fail | Blob store missing or token wrong | Vercel → Storage; `BLOB_READ_WRITE_TOKEN` |
+| One employee can't sign in | Locked or disabled | Wait 15 min or reset; check *Active* |
+| Times look 3 hours off | `FACTORY_TIMEZONE` missing | Set `Asia/Baghdad`, redeploy |

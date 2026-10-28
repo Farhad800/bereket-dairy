@@ -1,13 +1,13 @@
 # Backups and restore
 
-Two independent layers protect the factory's data. Either one alone is enough to recover.
+Two independent layers protect the Bereket Dairy data. Either one alone is enough to recover. They cover **only the dairy database and the dairy Blob store** — the plastic system has its own backups.
 
 | Layer | What it covers | How far back | Where it lives |
 |---|---|---|---|
 | **1. Neon point-in-time restore** | The whole database, to any second | 6 h on the Free plan, **7 days on Launch (recommended)**, 30 days on Scale | Inside Neon |
-| **2. Nightly encrypted backups** | Database dump + all photos/PDFs | 30 days of nightly copies | GitHub Actions artifacts (encrypted with your passphrase) |
+| **2. Nightly encrypted backups** | Database dump + all scanned papers (photos/PDFs) | 30 days of nightly copies | GitHub Actions artifacts (encrypted with your passphrase) |
 
-Rehearsed: a full dump → encrypt → decrypt → restore into an empty database was tested on 22 Oct 2026 and every table came back with identical row counts.
+Rehearsed for the dairy schema (28 Oct 2026, local databases only): dump → encrypt → decrypt → restore into an empty database; see TESTING.md.
 
 ## Automated backup configuration
 
@@ -64,14 +64,14 @@ You need: the backup artifact (`database-YYYY-MM-DD` and `files-YYYY-MM-DD` from
 
 ```bash
 # 1. Decrypt
-gpg --decrypt --output bereket-db.dump bereket-db-YYYY-MM-DD.dump.gpg
-gpg --decrypt --output files.tar.gz bereket-files-YYYY-MM-DD.tar.gz.gpg
+gpg --decrypt --output bereket-dairy-db.dump bereket-dairy-db-YYYY-MM-DD.dump.gpg
+gpg --decrypt --output files.tar.gz bereket-dairy-files-YYYY-MM-DD.tar.gz.gpg
 
 # 2. Create a new empty database (new Neon project/branch, or any PostgreSQL 14+)
 #    and copy its DIRECT connection string into TARGET_URL.
 
 # 3. Restore the data
-pg_restore --no-owner --no-acl --dbname="$TARGET_URL" bereket-db.dump
+pg_restore --no-owner --no-acl --dbname="$TARGET_URL" bereket-dairy-db.dump
 #   (restoring over an existing database instead: add --clean --if-exists)
 
 # 4. Check it
@@ -83,7 +83,7 @@ BLOB_READ_WRITE_TOKEN=<token of the store> node scripts/restore-files.mjs files-
 ```
 
 6. In Vercel, point `DATABASE_URL` / `DATABASE_URL_UNPOOLED` (and `BLOB_READ_WRITE_TOKEN` if the store changed) to the restored database, then **Redeploy**. Migrations run automatically; they are already applied, so nothing changes.
-7. Sign in and verify a few recent orders, a maintenance request with photos, and the audit log.
+7. Sign in and verify a few recent orders, a stock document with scanned papers, and the audit log.
 
 ### C. Copy a backup to look at old data without touching production
 
@@ -100,7 +100,7 @@ Do procedure B into a *separate* Neon branch or a local PostgreSQL and run the a
 Run the same commands from cron, e.g. nightly:
 
 ```bash
-pg_dump --format=custom --no-owner --no-acl --dbname="$DATABASE_URL_UNPOOLED" --file="/backups/bereket-$(date +%F).dump"
+pg_dump --format=custom --no-owner --no-acl --dbname="$DATABASE_URL_UNPOOLED" --file="/backups/bereket-dairy-$(date +%F).dump"
 tar -czf "/backups/uploads-$(date +%F).tar.gz" .uploads
 find /backups -mtime +30 -delete
 ```
