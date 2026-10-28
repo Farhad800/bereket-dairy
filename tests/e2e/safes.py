@@ -1,9 +1,9 @@
 """Several safes, transfers between safes, exchange with three boxes (accountant, 26 Oct 2026). EMPTY database.
-Fresh bereket_accept on :3001 (see TESTING.md), then: python3 tests/e2e/safes.py"""
+Fresh dairy_accept on :3001 (see TESTING.md), then: python3 tests/e2e/safes.py"""
 import os, re, subprocess, sys
 from playwright.sync_api import sync_playwright
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from stockdoc import stock_doc, pick_customer
-B=os.environ.get("BASE","http://localhost:3001"); DB=os.environ.get("PGDB","bereket_accept"); TOKEN=os.environ.get("SETUP_TOKEN","acceptance-setup-token-2026")
+B=os.environ.get("BASE","http://localhost:3001"); DB=os.environ.get("PGDB","dairy_accept"); TOKEN=os.environ.get("SETUP_TOKEN","dairy-setup-token-2026")
 PW="OwnerPass2026!"
 res=[]
 def ck(n,c): res.append(bool(c)); print(("PASS " if c else "FAIL ")+n, flush=True)

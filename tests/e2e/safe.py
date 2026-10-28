@@ -1,9 +1,9 @@
 """The safe — money in / out / exchange, payments for Buy & Sell, still owed, EUR, permissions. EMPTY database.
-   Start the app on :3001 against bereket_accept (see TESTING.md), then: python3 tests/e2e/safe.py"""
+   Start the app on :3001 against dairy_accept (see TESTING.md), then: python3 tests/e2e/safe.py"""
 import os, re, csv, io, subprocess, sys
 from playwright.sync_api import sync_playwright
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from stockdoc import stock_doc
-B=os.environ.get("BASE","http://localhost:3001"); DB=os.environ.get("PGDB","bereket_accept"); TOKEN=os.environ.get("SETUP_TOKEN","acceptance-setup-token-2026")
+B=os.environ.get("BASE","http://localhost:3001"); DB=os.environ.get("PGDB","dairy_accept"); TOKEN=os.environ.get("SETUP_TOKEN","dairy-setup-token-2026")
 res=[]
 def ck(n,c): res.append(bool(c)); print(("PASS " if c else "FAIL ")+n)
 def sql(q): return subprocess.run(["su","postgres","-c",f"psql -d {DB} -tAc \"{q}\""],capture_output=True,text=True).stdout.strip()
@@ -47,6 +47,8 @@ with sync_playwright() as p:
     sql(f"INSERT INTO {Q('\"RolePermission\"')} ({Q('\"roleId\"')},permission) SELECT id, p FROM {Q('\"Role\"')} CROSS JOIN (VALUES ('stock:sell'),('cash:view')) v(p) WHERE name='Sales Manager'")
     for code,name,kind,unit in [("P-100","Bereket bowl 1800","PRODUCT","pcs"),("M-100","PP Hammada","MATERIAL","kg")]:
         sql(f"INSERT INTO {Q('\"Product\"')} (id,code,name,kind,unit,{Q('\"updatedAt\"')}) VALUES ('t{code}','{code}','{name}','{kind}','{unit}',now())")
+    # Dairy rule: nothing can be sold that isn't in stock — opening stock for the sales in this test.
+    stock_doc(A, B, "INPUT", [("P-100",1000,None)], reason="OPENING")
     yr=sql("SELECT extract(year from now())::int")
 
     # 1. money in, three currencies kept apart
@@ -79,7 +81,7 @@ with sync_playwright() as p:
 
     # 5. buy in EUR, paid later from the safe
     stock_doc(A, B, "BUY", [("M-100","100","2")], party="Euro Polymers", currency="EUR", paid=200)
-    ck("buy fully paid in EUR refused: the safe has no EUR", sql(f"SELECT count(*) FROM {Q('\"StockDoc\"')}")=="0" and "\"Main safe\" has only 0 EUR" in A.inner_text("main"))
+    ck("buy fully paid in EUR refused: the safe has no EUR", sql(f"SELECT count(*) FROM {Q('\"StockDoc\"')} WHERE type='BUY'")=="0" and "\"Main safe\" has only 0 EUR" in A.inner_text("main"))
     out=stock_doc(A, B, "BUY", [("M-100","100","2")], party="Euro Polymers", currency="EUR", paid=0)
     did=A.url.split("/")[-1].split("?")[0]
     ck("buy saved unpaid: 200 EUR still owed", "/stock/" in A.url and "200 EUR" in out and bal("EUR")==0)

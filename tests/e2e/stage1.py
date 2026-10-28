@@ -1,6 +1,8 @@
-import re, sys
+"""Stage 1 — sign-in, roles, languages, install. Bereket Dairy: run on a fresh dairy_accept seeded WITH a first admin:
+   ADMIN_USERNAME=admin ADMIN_PASSWORD=AdminDev2026 (seed) + npm run demo:add, server on :3001."""
+import os, re, sys
 from playwright.sync_api import sync_playwright
-B="http://localhost:3000"; out="/tmp/claude-0/-home-claude/f2fd9017-1975-5c5d-8632-f9a800ffa010/scratchpad/e2e/"
+B=os.environ.get("BASE","http://localhost:3001"); out=os.path.join(os.environ.get("TMPDIR","/tmp"),"dairy-e2e/"); os.makedirs(out, exist_ok=True)
 res=[]
 def check(name, cond): res.append((name, bool(cond))); print(("PASS " if cond else "FAIL ")+name)
 with sync_playwright() as p:
@@ -11,36 +13,36 @@ with sync_playwright() as p:
     pg.goto(B+"/dashboard"); check("unauthenticated redirected to login", pg.url.endswith("/login"))
     pg.screenshot(path=out+"login-desktop.png")
     pg.fill("#username","admin"); pg.fill("#password","wrong"); pg.click("button[type=submit]")
-    pg.wait_for_selector("[role=status]"); check("wrong password rejected", "Wrong" in pg.inner_text("[role=status]"))
+    al = pg.locator("form [role=alert]").first; al.wait_for(); check("wrong password rejected", "Wrong" in al.inner_text())
     pg.fill("#password","AdminDev2026"); pg.click("button[type=submit]"); pg.wait_for_url("**/change-password", wait_until="commit")
     check("first login forces password change", True)
     pg.goto(B+"/dashboard"); check("cannot skip password change", "change-password" in pg.url)
     pg.fill("#current","AdminDev2026"); pg.fill("#next","onlyletterspw"); pg.fill("#confirm","onlyletterspw"); pg.click("button[type=submit]")
-    pg.wait_for_selector("[role=status]"); check("weak password refused", "numbers" in pg.inner_text("[role=status]"))
-    pg.fill("#current","AdminDev2026"); pg.fill("#next","Bereket2026Admin"); pg.fill("#confirm","Bereket2026Admin"); pg.click("button[type=submit]")
+    al = pg.locator("form [role=alert]").first; al.wait_for(); check("weak password refused", "numbers" in al.inner_text())
+    pg.fill("#current","AdminDev2026"); pg.fill("#next","DairyAdmin2026x"); pg.fill("#confirm","DairyAdmin2026x"); pg.click("button[type=submit]")
     pg.wait_for_url("**/dashboard", wait_until="commit"); check("password changed → dashboard", True)
     pg.screenshot(path=out+"dashboard-desktop.png", full_page=True)
     # create employee
     pg.goto(B+"/admin?tab=employees"); pg.click("text=New employee")
     pg.fill("#employeeId","1042"); pg.fill("#fullName","Ahmed Karim"); pg.fill("#username","ahmed.k")
-    pg.select_option("#roleId", label="Quality Control Team"); pg.click("form button[type=submit]")
+    pg.select_option("#roleId", label="Accountant"); pg.click("form button[type=submit]")
     pg.wait_for_selector("text=Temporary password"); temp=pg.locator("code").nth(1).inner_text()
     check("admin creates employee + one-time temp password", len(temp)==12)
     pg.screenshot(path=out+"admin-employees.png", full_page=True)
     pg.goto(B+"/admin?tab=roles"); pg.wait_for_selector("table"); pg.screenshot(path=out+"admin-roles.png", full_page=True)
     check("no JS errors (admin)", not errs)
     c.close()
-    # 2 new QC employee signs in on phone, Arabic
+    # 2 new accountant signs in on phone, Arabic
     m=p.devices["iPhone 13"]; c=br.new_context(**m); pg=c.new_page()
     pg.goto(B+"/login"); pg.click("button[lang=ar]"); pg.wait_for_function("document.documentElement.dir==='rtl'")
     check("Arabic switches to RTL", pg.evaluate("document.documentElement.dir")=="rtl")
     pg.screenshot(path=out+"login-mobile-ar.png", full_page=True)
     pg.fill("#username","ahmed.k"); pg.fill("#password",temp); pg.click("button[type=submit]"); pg.wait_for_url("**/change-password", wait_until="commit")
-    pg.fill("#current",temp); pg.fill("#next","Quality2026x"); pg.fill("#confirm","Quality2026x"); pg.click("button[type=submit]"); pg.wait_for_url("**/dashboard", wait_until="commit")
+    pg.fill("#current",temp); pg.fill("#next","Account2026x"); pg.fill("#confirm","Account2026x"); pg.click("button[type=submit]"); pg.wait_for_url("**/dashboard", wait_until="commit")
     pg.wait_for_timeout(3000)
     pg.screenshot(path=out+"dashboard-mobile-ar.png", full_page=True)
-    pg.goto(B+"/admin"); check("QC user blocked from admin page", "forbidden" in pg.url)
-    pg.goto(B+"/employees"); check("QC user can view directory", "Ahmed" in pg.content())
+    pg.goto(B+"/admin"); check("accountant blocked from admin page", "forbidden" in pg.url)
+    pg.goto(B+"/employees"); check("accountant can view directory", "Ahmed" in pg.content())
     c.close()
     # 3 production demo user, Turkish, menu
     c=br.new_context(**p.devices["Pixel 7"]); pg=c.new_page()

@@ -1,9 +1,9 @@
 """Stock Movements section — Input / Output / Buy / Sell documents, on an EMPTY database.
-   Start the app on :3001 against bereket_accept (see TESTING.md), then: python3 tests/e2e/stock-docs.py"""
+   Start the app on :3001 against dairy_accept (see TESTING.md), then: python3 tests/e2e/stock-docs.py"""
 import os, re, csv, io, subprocess, sys
 from playwright.sync_api import sync_playwright
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from stockdoc import stock_doc, pick_customer
-B=os.environ.get("BASE","http://localhost:3001"); DB=os.environ.get("PGDB","bereket_accept"); TOKEN=os.environ.get("SETUP_TOKEN","acceptance-setup-token-2026")
+B=os.environ.get("BASE","http://localhost:3001"); DB=os.environ.get("PGDB","dairy_accept"); TOKEN=os.environ.get("SETUP_TOKEN","dairy-setup-token-2026")
 res=[]
 def ck(n,c): res.append(bool(c)); print(("PASS " if c else "FAIL ")+n)
 def sql(q): return subprocess.run(["su","postgres","-c",f"psql -d {DB} -tAc \"{q}\""],capture_output=True,text=True).stdout.strip()
@@ -28,7 +28,7 @@ with sync_playwright() as p:
         A.wait_for_selector("text=Temporary password"); temp=A.locator("code").nth(1).inner_text()
         pg=ctx(); login(pg,user,temp); pw[user]=f"{user.capitalize()}Factory2026"
         pg.fill("#current",temp); pg.fill("#next",pw[user]); pg.fill("#confirm",pw[user]); pg.click("button[type=submit]"); pg.wait_for_url("**/dashboard", wait_until="commit"); pg.context.close()
-    items=[("P-100","Bereket bowl 1800","PRODUCT","pcs"),("S-100","Bereket bowl label","STICKER","pcs"),("M-100","PP Hammada","MATERIAL","kg")]
+    items=[("P-100","Bereket bowl 1800","PRODUCT","pcs"),("S-100","Yoghurt cup label","MATERIAL","pcs"),("M-100","Milk powder","MATERIAL","kg")]
     for code,name,kind,unit in items:
         sql(f"INSERT INTO {Q('\"Product\"')} (id,code,name,kind,unit,{Q('\"updatedAt\"')}) VALUES ('t{code}','{code}','{name}','{kind}','{unit}',now())")
 
@@ -83,21 +83,24 @@ with sync_playwright() as p:
     S.goto(B+f"/orders/{oid}"); ot=S.inner_text("main")
     ck("order page shows what was sold for it", "Sold" in ot and f"SAL-{yr}-0001" in ot)
 
-    # 4. Output above stock: warned, allowed, minus shown
+    # 4. Dairy rule: an Output above stock is refused before and after pressing Save — stock never goes below zero
     form=stock_doc(A, B, "OUTPUT", [("P-100",400,None)], reason="DAMAGE", save=False)
-    ck("output above stock warns before saving", "stock will go below zero" in form)
-    A.get_by_role("button", name=re.compile("^Save output")).click(); A.wait_for_url(re.compile(r".*/stock/[^/]+\?saved=1$")); out=A.inner_text("main")
-    ck("…saved anyway; stock −100 and a below-zero warning", stock("P-100")==-100 and "Below zero now" in out and f"OUT-{yr}-0001" in out)
+    ck("output above stock is flagged on the form before saving", "Not enough stock" in form)
+    n0=sql(f"SELECT count(*) FROM {Q('\"StockDoc\"')}")
+    A.get_by_role("button", name=re.compile("^Save output")).click(); A.get_by_text("Nothing was saved").wait_for(timeout=15000); out=A.inner_text("main")
+    ck("…saving is refused, naming the product; nothing saved; stock stays 300", "P-100" in out and stock("P-100")==300 and sql(f"SELECT count(*) FROM {Q('\"StockDoc\"')}")==n0)
+    stock_doc(A, B, "OUTPUT", [("P-100",300,None)], reason="DAMAGE")
+    ck("an output of exactly what is in stock is fine (stock 0)", stock("P-100")==0)
     A.goto(B+"/inventory"); inv=A.inner_text("main")
-    ck("warehouse shows the minus stock and has no inputs", "-100" in inv.replace("−","-") and A.locator("main input[type=number]").count()==0)
+    ck("warehouse never shows minus stock and has no inputs on the overview", not re.search(r"(^|\s)[−-]\d", inv) and A.locator("main input[type=number]").count()==0)
     A.goto(B+"/inventory?tab=movements"); mv=A.inner_text("main")
-    ck("movement list shows the documents", all(x in mv for x in ["Bought","Sold","Input","Output"]))
+    ck("movement list shows the documents", all(x in mv for x in ["Bought","Sold","In","Out"]))
 
     # 5. Per-role permissions
     W=ctx(); login(W,"walid",pw["walid"]); W.goto(B+"/stock")
     ck("warehouse team: Input and Output only", W.locator("a[href='/stock/new?type=INPUT']").count()==1 and W.locator("a[href='/stock/new?type=BUY']").count()==0 and W.locator("a[href='/stock/new?type=SELL']").count()==0)
     W.goto(B+"/stock/new?type=BUY"); ck("…the form has no Buy tab", W.get_by_role("tab", name="Buy").count()==0 and W.get_by_role("tab", name="Input").count()==1)
-    stock_doc(W, B, "INPUT", [("P-100",100,None)], reason="COUNT"); ck("…and can save an input (stock back to 0)", stock("P-100")==0)
+    stock_doc(W, B, "INPUT", [("P-100",100,None)], reason="COUNT"); ck("…and can save an input (stock 100)", stock("P-100")==100)
     S.goto(B+"/stock"); ck("sales can view stock movements but not create", "SAL-" in S.inner_text("main") and S.locator("a[href^='/stock/new']").count()==0)
     S.goto(B+"/stock/new"); ck("…the new-document page is forbidden for them", "/forbidden" in S.url)
 

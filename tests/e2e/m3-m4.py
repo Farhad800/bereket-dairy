@@ -1,9 +1,9 @@
 """M3 (money only for Buy / Sell / Safe roles) and M4 (temporary password blocks everything on the server).
-Fresh bereket_accept on :3001 (see TESTING.md), then: python3 tests/e2e/m3-m4.py"""
+Fresh dairy_accept on :3001 (see TESTING.md), then: python3 tests/e2e/m3-m4.py"""
 import os, re, subprocess, sys
 from playwright.sync_api import sync_playwright
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from stockdoc import stock_doc
-B=os.environ.get("BASE","http://localhost:3001"); DB=os.environ.get("PGDB","bereket_accept"); TOKEN=os.environ.get("SETUP_TOKEN","acceptance-setup-token-2026")
+B=os.environ.get("BASE","http://localhost:3001"); DB=os.environ.get("PGDB","dairy_accept"); TOKEN=os.environ.get("SETUP_TOKEN","dairy-setup-token-2026")
 PW="OwnerPass2026!"
 res=[]
 def ck(n,c): res.append(bool(c)); print(("PASS " if c else "FAIL ")+n, flush=True)
@@ -31,8 +31,10 @@ with sync_playwright() as p:
         pg=ctx(); login(pg,user,temp[user]); pw[user]=f"{user.capitalize()}Factory2026"
         pg.fill("#current",temp[user]); pg.fill("#next",pw[user]); pg.fill("#confirm",pw[user]); pg.click("button[type=submit]"); pg.wait_for_url("**/dashboard", wait_until="commit"); pg.context.close()
     sql(f"INSERT INTO {Q('\"RolePermission\"')} ({Q('\"roleId\"')},permission) SELECT id,'stock:sell' FROM {Q('\"Role\"')} WHERE name='Sales Manager'")
-    for i,c,n,k in [("tpbowl000001","P-1","Bowl 1800","PRODUCT"),("tslabel00001","S-1","Bowl label","STICKER")]:
+    for i,c,n,k in [("tpbowl000001","P-1","Bowl 1800","PRODUCT"),("tslabel00001","S-1","Cup label","MATERIAL")]:
         sql(f"INSERT INTO {Q('\"Product\"')} (id,code,name,kind,unit,{Q('\"updatedAt\"')}) VALUES ('{i}','{c}','{n}','{k}','pcs',now())")
+    # a batch recipe so the production sheet accepts P-1 (1 label per batch, synthetic)
+    sql(f"INSERT INTO {Q('\"ProductComponent\"')} (id,{Q('\"productId\"')},{Q('\"componentId\"')},qty,per) VALUES ('rc1','tpbowl000001','tslabel00001',1,'BATCH')")
 
     # money documents: a purchase at 0.005 USD and a sale at 2,500 IQD, with phones
     stock_doc(A, B, "BUY", [("S-1",20000,"0.005")], party="Label Printer Co", currency="USD", paid=0, save=False)
@@ -90,9 +92,8 @@ with sync_playwright() as p:
         A.goto(B+"/cash/new?type=IN"); A.get_by_label("Amount", exact=True).fill("5000"); A.get_by_label("Note").fill("probe")
     reqs["money in"]=capture(A, cash_fill, lambda: A.get_by_role("button", name=re.compile("^Save money in")).click())
     def daily_fill():
-        A.goto(B+"/production/daily?shift=A"); A.wait_for_load_state("networkidle")
-        if A.locator("text=Only products in open orders").count(): A.uncheck("text=Only products in open orders")
-        A.fill("input[name='qty_tpbowl000001']","9")
+        A.goto(B+"/production/daily"); A.wait_for_load_state("networkidle")
+        A.fill("input[name='batches_tpbowl000001']","1"); A.fill("input[name='qty_tpbowl000001']","9")
     reqs["daily production"]=capture(A, daily_fill, lambda: A.get_by_role("button", name=re.compile("Save")).last.click())
     def emp_fill():
         A.goto(B+"/admin?tab=employees"); A.click("text=New employee"); A.fill("#employeeId","7777"); A.fill("#fullName","Ghost"); A.fill("#username","ghost"); A.select_option("#roleId", label="Administrator")
@@ -107,7 +108,7 @@ with sync_playwright() as p:
     after=(count("StockDoc"), count("CashEntry"), count("ProductionEntry"), count("User"))
     ck(f"temp password: stock input, money in, production and new employee all refused ({blocked})", len(blocked)==4)
     ck(f"temp password: nothing was saved ({before} → {after})", before==after)
-    api={u: T.context.request.get(B+u).status for u in ["/api/reports/production","/api/audit","/api/import/template"]}
+    api={u: T.context.request.get(B+u).status for u in ["/api/reports/production","/api/audit","/api/reports/warehouse-daily"]}
     ck(f"temp password: downloads refused ({api})", all(s==403 for s in api.values()))
     T.goto(B+"/stock"); ck("temp password: pages still send to Change password", T.url.endswith("/change-password"))
     # language switch and the password change itself still work

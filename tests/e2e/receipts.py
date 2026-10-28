@@ -1,9 +1,9 @@
 """Receipts — saved print layouts (banner, fields, columns, language) and printing Sell / Buy / payment receipts. EMPTY database.
-   Start the app on :3001 against bereket_accept (see TESTING.md), then: python3 tests/e2e/receipts.py"""
+   Start the app on :3001 against dairy_accept (see TESTING.md), then: python3 tests/e2e/receipts.py"""
 import os, re, subprocess, sys
 from playwright.sync_api import sync_playwright
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from stockdoc import stock_doc, pick_customer
-B=os.environ.get("BASE","http://localhost:3001"); DB=os.environ.get("PGDB","bereket_accept"); TOKEN=os.environ.get("SETUP_TOKEN","acceptance-setup-token-2026")
+B=os.environ.get("BASE","http://localhost:3001"); DB=os.environ.get("PGDB","dairy_accept"); TOKEN=os.environ.get("SETUP_TOKEN","dairy-setup-token-2026")
 O="/tmp/claude-0/-home-claude/f2fd9017-1975-5c5d-8632-f9a800ffa010/scratchpad/receipts/"; os.makedirs(O, exist_ok=True)
 res=[]
 def ck(n,c): res.append(bool(c)); print(("PASS " if c else "FAIL ")+n)
@@ -36,6 +36,8 @@ with sync_playwright() as p:
     sql(f"INSERT INTO {Q('\"RolePermission\"')} ({Q('\"roleId\"')},permission) SELECT id, p FROM {Q('\"Role\"')} CROSS JOIN (VALUES ('stock:sell')) v(p) WHERE name='Sales Manager'")
     for code,name,n2 in [("P-100","كاسة بركة 1800","BEREKET KASE 1800"),("P-200","غطاء 28","KAPAK 28")]:
         sql(f"INSERT INTO {Q('\"Product\"')} (id,code,name,name2,kind,unit,{Q('\"updatedAt\"')}) VALUES ('t{code}','{code}','{name}','{n2}','PRODUCT','pcs',now())")
+    # Dairy rule: nothing can be sold that isn't in stock — opening stock for the sales in this test.
+    stock_doc(A, B, "INPUT", [("P-100",10000,None),("P-200",20000,None)], reason="OPENING")
     yr=sql("SELECT extract(year from now())::int")
 
     # 1. a sale with phone; part paid

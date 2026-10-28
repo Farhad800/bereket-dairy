@@ -1,8 +1,8 @@
 """Code-review fixes (26 Oct 2026): password change keeps the session in use; clear message when a record vanished.
-   Fresh bereket_accept on :3001, then: python3 tests/e2e/review-fixes.py"""
+   Fresh dairy_accept on :3001, then: python3 tests/e2e/review-fixes.py"""
 import os, re, subprocess
 from playwright.sync_api import sync_playwright
-B=os.environ.get("BASE","http://localhost:3001"); DB=os.environ.get("PGDB","bereket_accept"); TOKEN=os.environ.get("SETUP_TOKEN","acceptance-setup-token-2026")
+B=os.environ.get("BASE","http://localhost:3001"); DB=os.environ.get("PGDB","dairy_accept"); TOKEN=os.environ.get("SETUP_TOKEN","dairy-setup-token-2026")
 res=[]
 def ck(n,c): res.append(bool(c)); print(("PASS " if c else "FAIL ")+n)
 def sql(q): return subprocess.run(["su","postgres","-c",f"psql -d {DB} -tAc \"{q}\""],capture_output=True,text=True).stdout.strip()
