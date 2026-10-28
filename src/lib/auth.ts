@@ -5,7 +5,7 @@ import { cache } from "react";
 import { createHash, randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { db } from "./db";
-import type { Permission } from "./permissions";
+import { MONEY_GATE, effectivePermissions, type Permission } from "./permissions";
 
 export const SESSION_COOKIE = "bfms_session";
 const SESSION_HOURS = 12; // one long shift plus margin
@@ -124,7 +124,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     roleName: u.role.name,
     departmentName: u.department?.name ?? null,
     mustChangePassword: u.mustChangePassword,
-    permissions: new Set(u.role.permissions.map((p) => p.permission)),
+    permissions: effectivePermissions(u.role.permissions.map((p) => p.permission)),
   };
 });
 
@@ -132,10 +132,10 @@ export function can(user: CurrentUser | null, perm: Permission) {
   return !!user && user.permissions.has(perm);
 }
 
-/** Permissions that let someone see money: prices, totals, payments, what is owed (code review M3). */
-export const MONEY_PERMS: Permission[] = ["stock:buy", "stock:sell", "cash:view"];
+/** The one permission that lets someone see money: prices, costs, values, totals, payments, what is owed. */
+export const MONEY_PERMS: Permission[] = [MONEY_GATE];
 
-/** True for people who buy, sell or look after the safe. Everyone else sees quantities only. */
+/** True only for roles allowed to view the Safe. Everyone else sees quantities only. */
 export function canSeeMoney(user: { permissions: Set<string> } | null) {
   return !!user && MONEY_PERMS.some((p) => user.permissions.has(p));
 }

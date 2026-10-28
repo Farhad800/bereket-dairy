@@ -127,7 +127,10 @@
     "what": "Action",
     "record": "Record",
     "cannotDisableSelf": "You can't disable your own account.",
-    "cannotRemoveOwnAdmin": "You can't remove administration rights from your own role."
+    "cannotRemoveOwnAdmin": "You can't remove administration rights from your own role.",
+    "moneyOn": "This role can view the Safe, so it sees money everywhere: prices, costs, stock value, totals, payments and balances — in the warehouse, dashboard, reports and exports.",
+    "moneyOff": "This role can't view the Safe, so it sees no money anywhere (warehouse, dashboard, reports, exports) and can't buy, sell, use the safe, customers or receipts. Tick Safe → View to allow money.",
+    "needsSafe": "Works only together with Safe → View"
   },
   "perm": {
     "resources": {

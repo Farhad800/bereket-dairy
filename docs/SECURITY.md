@@ -15,8 +15,10 @@ Passing tests show that the controls below behave as intended in the tested case
 
 **Authorisation (server-side)**
 - Permissions are `resource:action` pairs per role, checked **on the server** in every server action, API route and protected page.
-- **Warehouse vs accountant:** prices, costs, values, payments, phone numbers, receipts and money reports require a money permission
-  (`stock:buy`, `stock:sell` or `cash:view`). For everyone else they are removed from the **page data** itself, not just hidden;
+- **Money only with Safe → View (owner's rule, 28 Oct 2026):** prices, costs, stock values, totals, payments, balances, phone numbers,
+  receipts and money reports are shown only to roles with `cash:view` — in the warehouse, dashboard, reports, exports and notifications alike.
+  A role without it loses every money permission (`stock:buy`, `stock:sell`, the other `cash:*`, `customers:*`, `receipts:manage`) on the server,
+  whatever its other ticks say; the role editor greys those out and says why. For everyone else they are removed from the **page data** itself, not just hidden;
   money columns are left out of CSV exports; scanned papers on Buy/Sell documents can't be opened.
 - The Warehouse Team can record Input and Output documents only; a crafted request for a Buy, Sell, cost change, production entry or safe entry is refused.
 
@@ -43,7 +45,7 @@ Passing tests show that the controls below behave as intended in the tested case
 
 ## Role-permission matrix (defaults)
 
-Every active employee can *view* orders, production, warehouse, stock movements, products, reports and the employee list. Money is visible only with a ✔ in `stock:buy`, `stock:sell` or `cash:view`.
+Every active employee can *view* orders, production, warehouse, stock movements, products, reports and the employee list. Money is visible only with a ✔ in `cash:view` (Safe → View); without it the money permissions in the table have no effect.
 
 | Permission | Admin | Accountant | Sales | Production | Warehouse |
 |---|:-:|:-:|:-:|:-:|:-:|

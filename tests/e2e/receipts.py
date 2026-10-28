@@ -33,7 +33,7 @@ with sync_playwright() as p:
     A.select_option("#roleId", label="Sales Manager"); A.select_option("#departmentId", label="Sales & Planning"); A.click("form button[type=submit]")
     A.wait_for_selector("text=Temporary password"); temp=A.locator("code").nth(1).inner_text()
     S=ctx(); login(S,"sara",temp); S.fill("#current",temp); S.fill("#next","SaraFactory2026"); S.fill("#confirm","SaraFactory2026"); S.click("button[type=submit]"); S.wait_for_url("**/dashboard", wait_until="commit")
-    sql(f"INSERT INTO {Q('\"RolePermission\"')} ({Q('\"roleId\"')},permission) SELECT id, p FROM {Q('\"Role\"')} CROSS JOIN (VALUES ('stock:sell')) v(p) WHERE name='Sales Manager'")
+    sql(f"INSERT INTO {Q('\"RolePermission\"')} ({Q('\"roleId\"')},permission) SELECT id, p FROM {Q('\"Role\"')} CROSS JOIN (VALUES ('stock:sell'),('cash:view')) v(p) WHERE name='Sales Manager'")
     for code,name,n2 in [("P-100","كاسة بركة 1800","BEREKET KASE 1800"),("P-200","غطاء 28","KAPAK 28")]:
         sql(f"INSERT INTO {Q('\"Product\"')} (id,code,name,name2,kind,unit,{Q('\"updatedAt\"')}) VALUES ('t{code}','{code}','{name}','{n2}','PRODUCT','pcs',now())")
     # Dairy rule: nothing can be sold that isn't in stock — opening stock for the sales in this test.

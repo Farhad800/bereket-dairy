@@ -38,7 +38,7 @@ with sync_playwright() as p:
         pg=ctx(); login(pg,user,temp); pw[user]=f"{user.capitalize()}Factory2026"
         pg.fill("#current",temp); pg.fill("#next",pw[user]); pg.fill("#confirm",pw[user]); pg.click("button[type=submit]"); pg.wait_for_url("**/dashboard", wait_until="commit"); pg.context.close()
     # Sales may sell (no Safe view: sees the safes' names but not what is in them)
-    sql(f"INSERT INTO {Q('\"RolePermission\"')} ({Q('\"roleId\"')},permission) SELECT id,p FROM {Q('\"Role\"')} CROSS JOIN (VALUES ('stock:sell'),('customers:view'),('customers:manage')) v(p) WHERE name='Sales Manager'")
+    sql(f"INSERT INTO {Q('\"RolePermission\"')} ({Q('\"roleId\"')},permission) SELECT id,p FROM {Q('\"Role\"')} CROSS JOIN (VALUES ('stock:sell'),('customers:view'),('customers:manage'),('cash:view')) v(p) WHERE name='Sales Manager'")
     sql(f"INSERT INTO {Q('\"Product\"')} (id,code,name,kind,unit,{Q('\"updatedAt\"')}) VALUES ('tpbowl000001','P-100','Bereket bowl 1800','PRODUCT','pcs',now())")
     stock_doc(A, B, "INPUT", [("P-100",5000,None)], reason="COUNT")
     yr=sql("SELECT extract(year from now())::int")
@@ -131,12 +131,12 @@ with sync_playwright() as p:
     A.goto(B+f"/customers/{cid}"); A.get_by_label("Amount received").fill("50000"); A.get_by_label("Into safe").select_option(office); A.get_by_role("button", name="Save payment").click(); A.wait_for_timeout(1500)
     ck("customer payment into the chosen Office safe", bal("Office safe","IQD")==1_800_000)
 
-    # ── 6. Sales (no Safe view) chooses a safe by name but never sees what is in it
+    # ── 6. Money rule (owner, 28 Oct 2026): selling needs Safe → View, so the seller sees each safe with what is in it
     S=ctx(); login(S,"sara",pw["sara"])
     stock_doc(S, B, "SELL", [("P-100",10,"5000")], party="Al Noor Market", currency="USD", paid=20, save=False)
-    o=opt_text(S,"Into safe"); ck(f"sales sees safe names without balances ({o})", sorted(o)==sorted(["Main safe","Dollar box","Office safe"]))
-    S.get_by_label("Currency").select_option("EUR"); ck("…only safes holding the currency (EUR → Main safe)", opt_text(S,"Into safe")==["Main safe"])
-    S.goto(B+"/cash"); ck("sales can't open the safes", "/forbidden" in S.url)
+    o=opt_text(S,"Into safe"); ck(f"seller (Safe view) sees safe names with balances ({o})", sorted(x.split(" — ")[0] for x in o)==sorted(["Main safe","Dollar box","Office safe"]) and all("USD" in x for x in o))
+    S.get_by_label("Currency").select_option("EUR"); ck("…only safes holding the currency (EUR → Main safe)", [x.split(" — ")[0] for x in opt_text(S,"Into safe")]==["Main safe"])
+    S.goto(B+"/cash"); ck("seller with Safe view can open the safes", "/forbidden" not in S.url)
 
     # ── 7. edit / delete safes
     A.goto(B+"/cash?tab=safes"); A.get_by_role("button", name="Edit: Dollar box").click(); A.get_by_label("Safe name").fill("Dollar cash box"); A.get_by_label(re.compile("^EUR — ")).check()

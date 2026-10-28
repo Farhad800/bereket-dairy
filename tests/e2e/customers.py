@@ -29,7 +29,7 @@ with sync_playwright() as p:
         pg=ctx(); login(pg,user,temp); pw[user]=f"{user.capitalize()}Factory2026"
         pg.fill("#current",temp); pg.fill("#next",pw[user]); pg.fill("#confirm",pw[user]); pg.click("button[type=submit]"); pg.wait_for_url("**/dashboard", wait_until="commit"); pg.context.close()
     # the owner lets Sales sell and keep customer accounts (as done in Administration → Roles)
-    sql(f"INSERT INTO {Q('\"RolePermission\"')} ({Q('\"roleId\"')},permission) SELECT id,p FROM {Q('\"Role\"')} CROSS JOIN (VALUES ('stock:sell'),('customers:view'),('customers:manage')) v(p) WHERE name='Sales Manager'")
+    sql(f"INSERT INTO {Q('\"RolePermission\"')} ({Q('\"roleId\"')},permission) SELECT id,p FROM {Q('\"Role\"')} CROSS JOIN (VALUES ('stock:sell'),('customers:view'),('customers:manage'),('cash:view')) v(p) WHERE name='Sales Manager'")
     for i,c,n in [("tpbowl000001","P-100","Bereket bowl 1800"),("tpcap0000002","P-200","Cap 28")]:
         sql(f"INSERT INTO {Q('\"Product\"')} (id,code,name,kind,unit,{Q('\"updatedAt\"')}) VALUES ('{i}','{c}','{n}','PRODUCT','pcs',now())")
     stock_doc(A, B, "INPUT", [("P-100",5000,None),("P-200",20000,None)], reason="COUNT")

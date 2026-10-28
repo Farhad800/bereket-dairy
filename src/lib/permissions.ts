@@ -106,6 +106,25 @@ export const DEFAULT_ROLES: { name: string; description: string; permissions: Pe
   },
 ];
 
+/**
+ * Money rule (owner, 28 Oct 2026): money is shown only to roles allowed to view the Safe (cash:view).
+ * A role without it gets none of the permissions that work with money, whatever its other ticks say,
+ * so prices, costs, values, totals, payments and balances never reach it — on any page, report, export or notice.
+ */
+export const MONEY_GATE: Permission = "cash:view";
+export const NEEDS_MONEY: Permission[] = [
+  "stock:buy", "stock:sell",
+  "cash:in", "cash:out", "cash:exchange", "cash:transfer", "cash:manage", "cash:export",
+  "customers:view", "customers:manage", "receipts:manage",
+];
+
+/** What a role can actually do: its ticked permissions, minus everything money-related when it can't view the Safe. */
+export function effectivePermissions(list: Iterable<string>): Set<string> {
+  const set = new Set(list);
+  if (!set.has(MONEY_GATE)) for (const p of NEEDS_MONEY) set.delete(p);
+  return set;
+}
+
 export function isPermission(value: string): value is Permission {
   return (ALL_PERMISSIONS as string[]).includes(value);
 }

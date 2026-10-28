@@ -5,6 +5,9 @@ import { useTranslations } from "next-intl";
 import { Lock, Plus, Trash2 } from "lucide-react";
 import { createRoleAction, deleteRoleAction, saveRolePermissionsAction } from "@/app/actions/admin";
 import { Alert, Badge, Button, Card, Field, Input, cn } from "@/components/ui";
+import { MONEY_GATE, NEEDS_MONEY } from "@/lib/permissions";
+
+const MONEY = new Set<string>(NEEDS_MONEY);
 
 type RoleRow = { id: string; name: string; description: string | null; isSystem: boolean; userCount: number; permissions: string[] };
 type MatrixRow = { resource: string; actions: string[] };
@@ -116,6 +119,7 @@ export default function RoleAdmin({ roles, matrix }: { roles: RoleRow[]; matrix:
             </div>
           </div>
           {msg && <div className="p-4 pb-0"><Alert tone={msg.ok ? "green" : "red"}>{msg.text}</Alert></div>}
+          <div className="p-4 pb-0"><Alert tone={checked.has(MONEY_GATE) ? "blue" : "amber"}>{t(checked.has(MONEY_GATE) ? "admin.moneyOn" : "admin.moneyOff")}</Alert></div>
           <div className="table-wrap">
             <table className="w-full text-sm">
               <thead className="text-xs text-muted">
@@ -138,7 +142,9 @@ export default function RoleAdmin({ roles, matrix }: { roles: RoleRow[]; matrix:
                               aria-label={`${m.resource} ${a}`}
                               checked={checked.has(p)}
                               onChange={() => flip(p)}
-                              className="size-5 accent-brand-600"
+                              disabled={MONEY.has(p) && !checked.has(MONEY_GATE)}
+                              title={MONEY.has(p) ? t("admin.needsSafe") : undefined}
+                              className={cn("size-5 accent-brand-600", MONEY.has(p) && !checked.has(MONEY_GATE) && "opacity-40")}
                             />
                           ) : (
                             <span className="text-line">·</span>

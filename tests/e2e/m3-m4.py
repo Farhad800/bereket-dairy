@@ -31,6 +31,16 @@ with sync_playwright() as p:
         pg=ctx(); login(pg,user,temp[user]); pw[user]=f"{user.capitalize()}Factory2026"
         pg.fill("#current",temp[user]); pg.fill("#next",pw[user]); pg.fill("#confirm",pw[user]); pg.click("button[type=submit]"); pg.wait_for_url("**/dashboard", wait_until="commit"); pg.context.close()
     sql(f"INSERT INTO {Q('\"RolePermission\"')} ({Q('\"roleId\"')},permission) SELECT id,'stock:sell' FROM {Q('\"Role\"')} WHERE name='Sales Manager'")
+    # Owner's rule (28 Oct 2026): money only with Safe → View. Sell ticked without it gives no Sell and no money anywhere.
+    S0=ctx(); login(S0,"sara",pw["sara"])
+    S0.goto(B+"/stock/new?type=SELL"); S0.wait_for_load_state("networkidle")
+    ck("Sell ticked but no Safe view: no sale form (no customer box)", S0.locator("[id=customerId]").count()==0)
+    S0.goto(B+"/inventory"); S0.wait_for_load_state("networkidle")
+    ck("…and no stock value or prices in the warehouse", S0.locator("[data-testid=stock-value]").count()==0 and "IQD" not in S0.inner_text("main"))
+    S0.goto(B+"/dashboard"); S0.wait_for_load_state("networkidle")
+    ck("…and no safe balances on the dashboard", "IQD" not in S0.inner_text("main"))
+    S0.context.close()
+    sql(f"INSERT INTO {Q('\"RolePermission\"')} ({Q('\"roleId\"')},permission) SELECT id,'cash:view' FROM {Q('\"Role\"')} WHERE name='Sales Manager'")
     for i,c,n,k in [("tpbowl000001","P-1","Bowl 1800","PRODUCT"),("tslabel00001","S-1","Cup label","MATERIAL")]:
         sql(f"INSERT INTO {Q('\"Product\"')} (id,code,name,kind,unit,{Q('\"updatedAt\"')}) VALUES ('{i}','{c}','{n}','{k}','pcs',now())")
     # a batch recipe so the production sheet accepts P-1 (1 label per batch, synthetic)

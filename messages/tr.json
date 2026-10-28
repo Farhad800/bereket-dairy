@@ -127,7 +127,10 @@
     "what": "İşlem",
     "record": "Kayıt",
     "cannotDisableSelf": "Kendi hesabınızı devre dışı bırakamazsınız.",
-    "cannotRemoveOwnAdmin": "Kendi rolünüzden yönetim yetkisini kaldıramazsınız."
+    "cannotRemoveOwnAdmin": "Kendi rolünüzden yönetim yetkisini kaldıramazsınız.",
+    "moneyOn": "Bu rol Kasa'yı görebilir; bu yüzden parayı her yerde görür: fiyatlar, maliyetler, stok değeri, toplamlar, ödemeler ve bakiyeler — depoda, panoda, raporlarda ve dışa aktarmalarda.",
+    "moneyOff": "Bu rol Kasa'yı göremez; bu yüzden hiçbir yerde para görmez (depo, pano, raporlar, dışa aktarma) ve alış, satış, kasa, müşteriler veya fişleri kullanamaz. Paraya izin vermek için Kasa → Görüntüle'yi işaretleyin.",
+    "needsSafe": "Yalnızca Kasa → Görüntüle ile birlikte çalışır"
   },
   "perm": {
     "resources": {
