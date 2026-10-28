@@ -103,6 +103,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
       </Card>
       {money && await costCard()}
       {money && <div className="mb-4"><Batches itemId={p.id} unit={p.unit} /></div>}
+      <div id="recipe" className="scroll-mt-4" />
       <RecipeEditor
         productId={p.id}
         canEdit={can(me, "products:edit")}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ArrowLeft } from "lucide-react";
-import { pageUser } from "@/lib/auth";
+import { can, pageUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/time";
 import { dayValue, todayYmd } from "@/lib/production";
@@ -14,7 +14,7 @@ export const metadata = { title: "Production entry" };
 
 /** The production sheet: per product, batches made + pieces produced. Saved only if every item is in stock. */
 export default async function DailyEntryPage({ searchParams }: { searchParams: Promise<{ day?: string }> }) {
-  await pageUser("production:create");
+  const me = await pageUser("production:create");
   const t = await getTranslations();
   const locale = await getLocale();
   const sp = await searchParams;
@@ -55,7 +55,7 @@ export default async function DailyEntryPage({ searchParams }: { searchParams: P
         <ArrowLeft className="size-4 rtl:rotate-180" /> {t("nav.production")}
       </Link>
       <PageHeader title={t("daily.title")} subtitle={t("daily.subtitle", { date: formatDate(dayValue(day), locale) })} />
-      <DailySheet rows={rows} day={day} today={today} />
+      <DailySheet rows={rows} day={day} today={today} canEditRecipe={can(me, "products:edit")} />
     </>
   );
 }

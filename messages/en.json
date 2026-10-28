@@ -886,7 +886,13 @@
     "lost": "lost {n} ({pct}%)",
     "over": "{n} more than expected",
     "notes": "Notes (optional)",
-    "savedLoss": "Loss: {lost} pcs."
+    "savedLoss": "Loss: {lost} pcs.",
+    "noRecipeAll": "None of the {total} products has a batch recipe yet, so their boxes are locked.",
+    "noRecipeSome": "{n} of {total} products have no batch recipe yet, so their boxes are locked (they are at the bottom).",
+    "noRecipeHowEdit": "Saving production takes the ingredients and packaging out of stock, so each product needs its recipe first. Press Add recipe on a product, enter its ingredients per batch and packaging per piece, save, and come back.",
+    "noRecipeHowAsk": "Saving production takes the ingredients and packaging out of stock, so each product needs its recipe first. Ask the administrator or accountant to add it on Products & Recipes.",
+    "addRecipe": "Add recipe",
+    "noRecipeShort": "No recipe yet"
   },
   "push": {
     "askTitle": "Get notifications on this device",

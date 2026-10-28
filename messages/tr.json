@@ -886,7 +886,13 @@
     "lost": "kayıp {n} (%{pct})",
     "over": "beklenenden {n} fazla",
     "notes": "Notlar (isteğe bağlı)",
-    "savedLoss": "Kayıp: {lost} adet."
+    "savedLoss": "Kayıp: {lost} adet.",
+    "noRecipeAll": "{total} ürünün hiçbirinin henüz parti reçetesi yok, bu yüzden kutuları kilitli.",
+    "noRecipeSome": "{total} üründen {n} tanesinin henüz parti reçetesi yok, bu yüzden kutuları kilitli (en altta).",
+    "noRecipeHowEdit": "Üretimi kaydetmek hammadde ve ambalajı stoktan düşer, bu yüzden her ürünün önce reçetesi olmalı. Üründe Reçete ekle'ye basın, parti başına malzemeleri ve parça başına ambalajı girin, kaydedin ve geri dönün.",
+    "noRecipeHowAsk": "Üretimi kaydetmek hammadde ve ambalajı stoktan düşer, bu yüzden her ürünün önce reçetesi olmalı. Yöneticiden veya muhasebeciden Ürünler ve Reçeteler'de eklemesini isteyin.",
+    "addRecipe": "Reçete ekle",
+    "noRecipeShort": "Henüz reçete yok"
   },
   "push": {
     "askTitle": "Bu cihazda bildirim alın",

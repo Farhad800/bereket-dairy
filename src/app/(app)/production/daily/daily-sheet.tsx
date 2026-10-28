@@ -3,7 +3,8 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Save, Search } from "lucide-react";
+import Link from "next/link";
+import { BookPlus, Save, Search } from "lucide-react";
 import { useFormAction } from "@/components/use-form-action";
 import { Alert, Button, cn } from "@/components/ui";
 import { saveDailyEntriesAction, type SheetResult } from "@/app/actions/production";
@@ -16,7 +17,7 @@ export type SheetRow = {
 const nf = (n: number) => n.toLocaleString("en", { maximumFractionDigits: 3 });
 type Val = { b: string; q: string };
 
-export default function DailySheet({ rows, day, today }: { rows: SheetRow[]; day: string; today: string }) {
+export default function DailySheet({ rows, day, today, canEditRecipe }: { rows: SheetRow[]; day: string; today: string; canEditRecipe: boolean }) {
   const t = useTranslations();
   const router = useRouter();
   const [vals, setVals] = useState<Record<string, Val>>({});
@@ -31,8 +32,11 @@ export default function DailySheet({ rows, day, today }: { rows: SheetRow[]; day
 
   const shown = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    return rows.filter((r) => !q || `${r.code} ${r.name} ${r.name2 ?? ""}`.toLowerCase().includes(q));
+    // Products that can be produced (they have a batch recipe) first; the locked ones after them.
+    return rows.filter((r) => !q || `${r.code} ${r.name} ${r.name2 ?? ""}`.toLowerCase().includes(q))
+      .sort((a, b) => Number(b.hasRecipe) - Number(a.hasRecipe));
   }, [rows, filter]);
+  const noRecipe = rows.filter((r) => !r.hasRecipe).length;
   const filled = Object.entries(vals).filter(([, v]) => v.b.trim() !== "" || v.q.trim() !== "");
   const pieces = filled.reduce((s, [, v]) => s + (Number(v.q) || 0), 0);
   const batches = filled.reduce((s, [, v]) => s + (Number(v.b) || 0), 0);
@@ -58,6 +62,12 @@ export default function DailySheet({ rows, day, today }: { rows: SheetRow[]; day
         </label>
       </div>
       <p className="mb-3 text-sm text-muted">{t("daily.help")}</p>
+      {noRecipe > 0 && (
+        <div className="mb-3"><Alert tone="amber">
+          <b>{t(noRecipe === rows.length ? "daily.noRecipeAll" : "daily.noRecipeSome", { n: noRecipe, total: rows.length })}</b>{" "}
+          {t(canEditRecipe ? "daily.noRecipeHowEdit" : "daily.noRecipeHowAsk")}
+        </Alert></div>
+      )}
 
       {error && <div className="mb-3"><Alert><span className="whitespace-pre-line">{error}</span></Alert></div>}
       {result && (
@@ -90,7 +100,6 @@ export default function DailySheet({ rows, day, today }: { rows: SheetRow[]; day
                     {r.perBatch ? <> · {t("daily.perBatch", { n: nf(r.perBatch) })}</> : null}
                     <span className="md:hidden"> · {t("order.inStock")}: {nf(r.stock)}{r.today > 0 && ` · ${t("daily.todayAlready")}: ${nf(r.today)}`}</span>
                   </p>
-                  {!r.hasRecipe && <p className="text-xs font-semibold">{t("daily.noRecipe")}</p>}
                   {loss && (
                     <p className={cn("text-xs", loss.lost > 0 ? "font-semibold" : "text-muted")}>
                       {t("daily.expected", { n: nf(loss.expected) })} · {loss.lost >= 0 ? t("daily.lost", { n: nf(loss.lost), pct: loss.pct }) : t("daily.over", { n: nf(-loss.lost) })}
@@ -100,18 +109,26 @@ export default function DailySheet({ rows, day, today }: { rows: SheetRow[]; day
                 <span className="hidden text-end text-sm tabular-nums md:block">{r.ordered ? nf(r.ordered) : "—"}</span>
                 <span className="hidden text-end text-sm tabular-nums md:block">{nf(r.stock)}</span>
                 <span className={cn("hidden text-end text-sm tabular-nums md:block", r.today > 0 ? "font-semibold" : "text-muted")}>{r.today ? nf(r.today) : "—"}</span>
+                {r.hasRecipe ? (<>
                 <input
                   data-q name={`batches_${r.id}`} type="number" inputMode="decimal" min={0} step="0.001"
-                  value={v.b} onChange={(e) => set(r.id, "b", e.target.value)} onKeyDown={onKey} disabled={!r.hasRecipe}
+                  value={v.b} onChange={(e) => set(r.id, "b", e.target.value)} onKeyDown={onKey}
                   aria-label={`${r.code} ${t("daily.batches")}`} placeholder={t("daily.batches")}
                   className="min-h-11 w-full rounded-lg border border-line bg-surface px-2 text-end text-base tabular-nums disabled:opacity-50" dir="ltr"
                 />
                 <input
                   data-q name={`qty_${r.id}`} type="number" inputMode="numeric" min={0} step={1}
-                  value={v.q} onChange={(e) => set(r.id, "q", e.target.value)} onKeyDown={onKey} disabled={!r.hasRecipe}
+                  value={v.q} onChange={(e) => set(r.id, "q", e.target.value)} onKeyDown={onKey}
                   aria-label={`${r.code} ${t("daily.produced")}`} placeholder={t("daily.pcs")}
                   className="min-h-11 w-full rounded-lg border border-line bg-surface px-2 text-end text-base tabular-nums disabled:opacity-50" dir="ltr"
                 />
+                </>) : canEditRecipe ? (
+                  <Link href={`/products/${r.id}#recipe`} className="col-span-2 inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-ink px-2 text-sm font-semibold hover:bg-surface-2">
+                    <BookPlus className="size-4" /> {t("daily.addRecipe")}
+                  </Link>
+                ) : (
+                  <span className="col-span-2 text-center text-xs font-semibold text-muted">{t("daily.noRecipeShort")}</span>
+                )}
               </li>
             );
           })}
