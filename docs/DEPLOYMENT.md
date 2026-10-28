@@ -2,9 +2,17 @@
 
 Bereket Dairy Factory Management System — how it is hosted, configured, set up and updated.
 
-> **Status: live since 28 Oct 2026** at https://bereket-dairy.vercel.app (Vercel project `bereket-dairy`, region fra1),
+> **Status: live since 28 Oct 2026** at https://bereket-dairy.vercel.app (Vercel project `bereket-dairy`, functions in iad1 / Washington — the same region as the Neon database),
 > on the dairy Neon database and the private Blob store `bereket-dairy-files`. Deployed from `main` on the owner's go-ahead.
 > The project is not linked to Git: pushes do not deploy by themselves; a new production deployment is started by hand.
+
+## Region: keep the app next to its database
+
+The Neon database of this project is in **iad1 (Washington, US East)**; a Neon project's region can't be changed later.
+The app's functions must run in the **same region** (Vercel → Settings → Functions → Region = iad1). Each page makes 8–18 database
+round trips; with the app in Frankfurt and the database in Washington each trip costs ~90 ms, so pages took 0.6–1.7 s on the server
+instead of 0.02–0.2 s (measured 28 Oct 2026 on a copy with the 521-item opening list). Moving both to Frankfurt (fra1) would be faster
+still for Iraq, but needs a new Neon database in fra1 and a copy of the data (see BACKUP-RESTORE.md, procedure B).
 
 ## 0. Keep it separate from Bereket Plastic
 
