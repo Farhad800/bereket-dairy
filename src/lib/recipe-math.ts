@@ -4,13 +4,15 @@
  * Dairy rules (owner, 28 Oct 2026):
  *  - BATCH lines (milk, sugar, cultures…): recipe amount × batches made
  *  - PIECE lines (cups, lids, labels…): amount × pieces actually produced
- *  - CARTON lines (cartons, tape…): amount × cartons packed, where cartons = ⌈pieces ÷ pieces per carton⌉
+ *  - CARTON lines (tape…): amount × cartons packed, where cartons = ⌈pieces ÷ pieces per carton⌉
  *    (a started carton is used)
+ *  - PACK lines (a carton, tray or bag that holds N pieces): qty = N pieces in ONE; uses ⌈pieces ÷ N⌉
+ *    (a started one counts — the Bereket FMS rule)
  *  - kg items are kept to 6 decimals (1 mg); piece items are always whole (rounded up)
  */
 export type Need = { componentId: string; code: string; name: string; unit: string; qty: number };
 
-export type RecipeLine = { qty: unknown; per: "BATCH" | "PIECE" | "CARTON"; component: { id: string; code: string; name: string; unit: string } };
+export type RecipeLine = { qty: unknown; per: "BATCH" | "PIECE" | "CARTON" | "PACK"; component: { id: string; code: string; name: string; unit: string } };
 export type Recipe = { piecesPerCarton?: number | null; components: RecipeLine[] };
 
 export const isKg = (u: string) => u.toLowerCase() === "kg";
@@ -30,10 +32,11 @@ export function needsFor(p: Recipe, batches: number, pieces: number): Need[] {
   for (const line of p.components) {
     const q = Number(line.qty), c = line.component;
     if (!(q > 0)) continue;
-    const times = line.per === "BATCH" ? batches : line.per === "PIECE" ? pieces : cartons;
-    if (!(times > 0)) continue;
+    // PACK: one pack for every q pieces, a started pack counts.
+    const add = line.per === "PACK" ? cartonsFor(pieces, Math.round(q)) : q * (line.per === "BATCH" ? batches : line.per === "PIECE" ? pieces : cartons);
+    if (!(add > 0)) continue;
     const cur = out.get(c.id) ?? { componentId: c.id, code: c.code, name: c.name, unit: c.unit, qty: 0 };
-    cur.qty = r6(cur.qty + q * times);
+    cur.qty = r6(cur.qty + add);
     out.set(c.id, cur);
   }
   // Piece items are whole: a started piece is used.

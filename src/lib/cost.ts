@@ -28,9 +28,9 @@ export function fifoTake(lots: { left: number; unit: number | null }[] | undefin
 }
 export type CostRecipe = {
   piecesPerCarton: number | null;
-  components: { qty: unknown; per: "BATCH" | "PIECE" | "CARTON"; component: CostItem }[];
+  components: { qty: unknown; per: "BATCH" | "PIECE" | "CARTON" | "PACK"; component: CostItem }[];
 };
-export type CostPart = { id: string; code: string; name: string; unit: string; qty: number; unitCost: number | null; cost: number | null; why: "batch" | "piece" | "carton" };
+export type CostPart = { id: string; code: string; name: string; unit: string; qty: number; unitCost: number | null; cost: number | null; why: "batch" | "piece" | "carton" | "pack" };
 export type ProductCost = { batches: number; pieces: number; parts: CostPart[]; total: number; perPiece: number; missing: CostPart[]; noRecipe: boolean };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -41,7 +41,7 @@ export function productCost(p: CostRecipe, batches: number, pieces: number): Pro
   const why = new Map<string, CostPart["why"]>();
   for (const l of p.components) {
     items.set(l.component.id, l.component);
-    if (!why.has(l.component.id)) why.set(l.component.id, l.per === "BATCH" ? "batch" : l.per === "PIECE" ? "piece" : "carton");
+    if (!why.has(l.component.id)) why.set(l.component.id, l.per === "BATCH" ? "batch" : l.per === "PIECE" ? "piece" : l.per === "PACK" ? "pack" : "carton");
   }
   const n = Math.max(0, Math.floor(pieces));
   const b = Math.max(0, batches);

@@ -17,11 +17,12 @@ const six = (n: number) => Math.abs(n * 1e6 - Math.round(n * 1e6)) < 1e-3;
 // ───────── A product's recipe ─────────
 // BATCH lines: amount of the item in ONE batch (kg items in kg — the form converts grams — or pieces).
 // PIECE lines: amount per piece produced (cups, lids, labels…).
-// CARTON lines: amount per carton packed (cartons, tape…) — needs the product's pieces per carton.
+// CARTON lines: amount per carton packed (tape…) — needs the product's pieces per carton.
+// PACK lines: a carton / tray / bag and how many pieces go into ONE (whole number); uses ⌈pieces ÷ that⌉.
 const linesSchema = z.array(z.object({
   componentId: z.string().min(1, "Choose the item").max(40),
   qty: z.coerce.number().positive("More than 0").max(100_000_000).refine(six, "At most 6 decimals (1 mg)"),
-  per: z.enum(["BATCH", "PIECE", "CARTON"]),
+  per: z.enum(["BATCH", "PIECE", "CARTON", "PACK"]),
 })).max(80);
 type Lines = z.infer<typeof linesSchema>;
 
@@ -51,13 +52,15 @@ async function writeRecipe(tx: Prisma.TransactionClient, productId: string, piec
     const c = comps.find((x) => x.id === l.componentId)!;
     if (c.kind !== "MATERIAL") throw new UserError(`${c.code} is a finished product. A recipe uses ingredients and production items only.`);
     if (l.per === "CARTON" && !piecesPerCarton) throw new UserError("Set how many pieces go into one carton before adding items per carton.");
+    if (l.per === "PACK" && !Number.isInteger(l.qty)) throw new UserError(`${c.code}: type how many whole pieces go into one.`);
+    if (l.per === "PACK" && c.unit.toLowerCase() === "kg") throw new UserError(`${c.code} is counted in kg. "Pieces in one" is for packaging counted in pieces (cartons, trays, bags).`);
   }
   await tx.productComponent.deleteMany({ where: { productId } });
   if (lines.length) await tx.productComponent.createMany({ data: lines.map((l) => ({ productId, componentId: l.componentId, qty: l.qty, per: l.per })) });
   const c = (id: string) => comps.find((x) => x.id === id)!;
   await audit({
     userId, action: "product.recipe", entityType: "Product", entityId: productId,
-    after: { lines: lines.map((l) => `${c(l.componentId).code} ${l.qty} ${c(l.componentId).unit} per ${l.per.toLowerCase()}`) },
+    after: { lines: lines.map((l) => l.per === "PACK" ? `${c(l.componentId).code}: 1 per ${l.qty} pieces` : `${c(l.componentId).code} ${l.qty} ${c(l.componentId).unit} per ${l.per.toLowerCase()}`) },
   }, tx);
 }
 

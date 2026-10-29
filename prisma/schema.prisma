@@ -304,6 +304,7 @@ enum ComponentBasis {
   BATCH // per batch of the recipe (milk, sugar, cultures…)
   PIECE // per piece produced (cups, lids, labels…)
   CARTON // per carton packed (cartons, tape…) — needs the product's pieces per carton
+  PACK // packaging that holds several pieces (a carton, tray, bag): qty = pieces in ONE; uses ⌈pieces ÷ qty⌉ (a started one counts)
 }
 
 /// A product's recipe: ingredients per batch, and packaging per piece / per carton.

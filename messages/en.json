@@ -1059,9 +1059,9 @@
     "batchTitle": "Ingredients per batch",
     "batchHint": "Milk, sugar, cultures, flavours… the amount in ONE batch, in kg or g (or pieces). Production takes this × the batches made.",
     "addIngredient": "Add ingredient",
-    "pieceTitle": "Packaging per piece",
-    "pieceHint": "Cups, lids, labels… the amount for ONE piece produced. Production takes this × the pieces made.",
-    "addPieceItem": "Add item per piece",
+    "pieceTitle": "Packaging",
+    "pieceHint": "For each packaging item choose how it is used: a carton, tray or bag → \"Pieces in one\" (how many pieces go into ONE; a started one counts). A cup, lid or label → \"Per piece\" (the amount for one piece).",
+    "addPieceItem": "Add packaging",
     "cartonTitle": "Per carton",
     "cartonHint": "Cartons, tape… the amount for ONE carton packed. A started carton counts as used.",
     "addCartonItem": "Add item per carton",
@@ -1069,7 +1069,15 @@
     "perPiece": "per piece",
     "perCarton": "per carton",
     "previewBatches": "batches",
-    "cartonsUsed": "{n} cartons"
+    "cartonsUsed": "{n} cartons",
+    "packQty": "pieces in one",
+    "pcsInOne": "pcs in one",
+    "howUsed": "How it is used",
+    "optPack": "Pieces in one (carton, tray, bag)",
+    "optPiece": "Per piece (cup, lid, label)",
+    "packLine": "1 for every {n} pieces — a started one counts",
+    "packAsk": "type how many pieces go into one",
+    "ppcFromPack": "Pieces in one carton: {n} (from the packaging)"
   },
   "sd": {
     "intro": "Every manual change of stock: input, output, buy and sell. Production and what it uses still change stock automatically.",
@@ -1484,7 +1492,8 @@
     "why": {
       "batch": "per batch",
       "piece": "per piece",
-      "carton": "per carton"
+      "carton": "per carton",
+      "pack": "1 per pack"
     },
     "piecesMade": "Pieces made",
     "lastProduction": "Last production run of this product",

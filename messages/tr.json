@@ -1059,9 +1059,9 @@
     "batchTitle": "Parti başına hammaddeler",
     "batchHint": "Süt, şeker, maya, aroma… BİR partideki miktar, kg veya g (ya da adet). Üretim bunu × yapılan parti sayısı kadar düşer.",
     "addIngredient": "Hammadde ekle",
-    "pieceTitle": "Adet başına ambalaj",
-    "pieceHint": "Kap, kapak, etiket… üretilen BİR adet için miktar. Üretim bunu × üretilen adet kadar düşer.",
-    "addPieceItem": "Adet başına malzeme ekle",
+    "pieceTitle": "Ambalaj",
+    "pieceHint": "Her ambalaj kalemi için kullanımını seçin: koli, tepsi veya torba → \"Birindeki adet\" (BİRİNE kaç adet girer; başlanmış olan tam sayılır). Kap, kapak veya etiket → \"Adet başına\" (bir adet için miktar).",
+    "addPieceItem": "Ambalaj ekle",
     "cartonTitle": "Koli başına",
     "cartonHint": "Koli, bant… paketlenen BİR koli için miktar. Başlanmış koli kullanılmış sayılır.",
     "addCartonItem": "Koli başına malzeme ekle",
@@ -1069,7 +1069,15 @@
     "perPiece": "adet başına",
     "perCarton": "koli başına",
     "previewBatches": "parti",
-    "cartonsUsed": "{n} koli"
+    "cartonsUsed": "{n} koli",
+    "packQty": "birindeki adet",
+    "pcsInOne": "birinde adet",
+    "howUsed": "Nasıl kullanılır",
+    "optPack": "Birindeki adet (koli, tepsi, torba)",
+    "optPiece": "Adet başına (kap, kapak, etiket)",
+    "packLine": "Her {n} adet için 1 — başlanmış olan tam sayılır",
+    "packAsk": "birine kaç adet girdiğini yazın",
+    "ppcFromPack": "Bir kolideki adet: {n} (ambalajdan)"
   },
   "sd": {
     "intro": "Stoktaki her elle değişiklik: giriş, çıkış, alış ve satış. Üretim ve kullandıkları stoğu yine otomatik değiştirir.",
@@ -1484,7 +1492,8 @@
     "why": {
       "batch": "parti başına",
       "piece": "adet başına",
-      "carton": "koli başına"
+      "carton": "koli başına",
+      "pack": "koli başına 1"
     },
     "piecesMade": "Üretilen adet",
     "lastProduction": "Bu ürünün son üretimi",

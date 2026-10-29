@@ -9,7 +9,7 @@ import { createProductAction, saveProductPageAction } from "@/app/actions/master
 import { cartonsFor, fmtAmount as showQty, isKg, lossOf, needsFor, r6 } from "@/lib/recipe-math";
 
 export type Item = { id: string; code: string; name: string; name2: string | null; unit: string; stock: number };
-type Per = "BATCH" | "PIECE" | "CARTON";
+type Per = "BATCH" | "PIECE" | "CARTON" | "PACK";
 type U = "kg" | "g" | "pcs";
 type Line = { key: number; componentId: string; qty: string; u: U; per: Per };
 
@@ -42,10 +42,13 @@ export default function RecipeEditor({ productId, canEdit, items, initial, detai
   const [pending, start] = useTransition();
 
   const set = (key: number, patch: Partial<Line>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
-  const add = (per: Per) => setLines((ls) => [...ls, { key: ++seq.current, componentId: "", qty: "", u: "kg", per }]);
+  const add = (per: Per) => setLines((ls) => [...ls, { key: ++seq.current, componentId: "", qty: "", u: per === "BATCH" ? "kg" : "pcs", per }]);
   const remove = (key: number) => setLines((ls) => ls.filter((l) => l.key !== key));
   const baseQty = (l: Line) => (l.u === "g" ? r6(Number(l.qty) / 1000) : Number(l.qty));
-  const ppc = cartons && Number(d.piecesPerCarton) > 0 ? Math.floor(Number(d.piecesPerCarton)) : null;
+  // Pieces in one carton: typed under "Packed in cartons", else taken from the biggest "pieces in one" packaging line.
+  const packN = Math.max(0, ...lines.filter((l) => l.per === "PACK" && l.componentId && Number(l.qty) >= 1).map((l) => Math.floor(Number(l.qty))));
+  const typedPpc = cartons && Number(d.piecesPerCarton) > 0 ? Math.floor(Number(d.piecesPerCarton)) : null;
+  const ppc = typedPpc ?? (packN > 0 ? packN : null);
 
   const preview = useMemo(() => {
     const b = Number(pb), n = Math.floor(Number(pp));
@@ -65,7 +68,7 @@ export default function RecipeEditor({ productId, canEdit, items, initial, detai
     const payloadLines = lines.filter((l) => (l.componentId || l.qty) && (l.per !== "CARTON" || ppc)).map((l) => ({ componentId: l.componentId, qty: baseQty(l), per: l.per }));
     const det = {
       code: d.code || undefined, name: d.name, name2: d.name2 || undefined, specifications: d.specifications || undefined,
-      batchYield: d.batchYield || undefined, piecesPerCarton: cartons && d.piecesPerCarton ? d.piecesPerCarton : undefined,
+      batchYield: d.batchYield || undefined, piecesPerCarton: ppc ? String(ppc) : undefined,
     };
     const r = creating
       ? await createProductAction({ ...det, lines: payloadLines })
@@ -75,10 +78,11 @@ export default function RecipeEditor({ productId, canEdit, items, initial, detai
   });
 
   const opt = items.map((i) => ({ value: i.id, label: i.name, hint: [i.code, i.name2, i.unit].filter(Boolean).join(" · ") }));
-  const perText = (per: Per) => t(per === "BATCH" ? "rc.perBatch" : per === "PIECE" ? "rc.perPiece" : "rc.perCarton");
-  const rows = (per: Per) => lines.filter((l) => l.per === per).map((l) => {
+  const perText = (per: Per) => t(per === "BATCH" ? "rc.perBatch" : per === "PIECE" ? "rc.perPiece" : per === "PACK" ? "rc.packQty" : "rc.perCarton");
+  const rows = (per: Per) => lines.filter((l) => l.per === per || (per === "PIECE" && l.per === "PACK")).map((l) => {
     const c = all.get(l.componentId);
-    const kg = c ? isKg(c.unit) : true;
+    const pack = l.per === "PACK";
+    const kg = !pack && (c ? isKg(c.unit) : per === "BATCH");
     return (
       <li key={l.key} className="grid gap-2 py-2 sm:grid-cols-[1fr_8rem_5.5rem_auto] sm:items-start" data-testid={`line-${per}`}>
         <div>
@@ -94,9 +98,22 @@ export default function RecipeEditor({ productId, canEdit, items, initial, detai
           <Select value={l.u} onChange={(e) => set(l.key, { u: e.target.value as U })} disabled={!canEdit} aria-label={t("item.unit")}>
             <option value="kg">kg</option><option value="g">g</option>
           </Select>
-        ) : <span className="flex min-h-11 items-center text-sm text-muted">{t("md.pcs")}</span>}
+        ) : <span className="flex min-h-11 items-center text-sm text-muted">{pack ? t("rc.pcsInOne") : t("md.pcs")}</span>}
         {canEdit ? <Button type="button" size="sm" variant="ghost" onClick={() => remove(l.key)} aria-label={t("order.removeLine")}><Trash2 className="size-4" /></Button> : <span />}
-        <span className="text-xs text-muted sm:col-span-4">{perText(per)}</span>
+        {per === "PIECE" ? (
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:col-span-4" role="radiogroup" aria-label={t("rc.howUsed")}>
+            {(["PACK", "PIECE"] as const).map((k) => (
+              <label key={k} className="inline-flex items-center gap-1.5">
+                <input type="radio" name={`per_${l.key}`} checked={l.per === k} disabled={!canEdit} className="accent-brand-600"
+                  onChange={() => set(l.key, { per: k, u: "pcs", qty: k === "PACK" && !l.qty && typedPpc ? String(typedPpc) : l.qty })} />
+                {t(k === "PACK" ? "rc.optPack" : "rc.optPiece")}
+              </label>
+            ))}
+            <span className="text-muted">· {pack
+              ? (Number(l.qty) >= 1 ? t("rc.packLine", { n: Math.floor(Number(l.qty)).toLocaleString("en") }) : t("rc.packAsk"))
+              : t("rc.perPiece")}</span>
+          </div>
+        ) : <span className="text-xs text-muted sm:col-span-4">{perText(per)}</span>}
       </li>
     );
   });
@@ -121,6 +138,7 @@ export default function RecipeEditor({ productId, canEdit, items, initial, detai
                   <Input type="number" min={1} step={1} value={d.piecesPerCarton} onChange={(e) => setD({ ...d, piecesPerCarton: e.target.value })} disabled={!canEdit} className="mt-1 text-end" dir="ltr" aria-label={t("rc.piecesPerCarton")} />
                 </label>
               )}
+              {!cartons && packN > 0 && <p className="mt-1 text-xs font-semibold">{t("rc.ppcFromPack", { n: packN.toLocaleString("en") })}</p>}
               <p className="mt-1 text-xs font-normal text-muted">{t("rc.cartonsOptional")}</p>
             </div>
             <label className="text-sm font-medium sm:col-span-2">{t("md.specifications")}<Input value={d.specifications} onChange={(e) => setD({ ...d, specifications: e.target.value })} disabled={!canEdit} className="mt-1" aria-label={t("md.specifications")} maxLength={2000} /></label>

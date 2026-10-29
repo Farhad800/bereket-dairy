@@ -254,7 +254,7 @@ with sync_playwright() as p:
     for path in ["/inventory?tab=materials", "/inventory?tab=products", f"/products/{iid('MILK')}", f"/products/{iid('YOG1K')}", f"/stock/{buy}",
                  f"/reports/warehouse-daily?{RANGE}&group=movement", "/production", "/dashboard"]:
         st, html = get(path, WH)
-        leak = re.search(r"IQD|8,000|8000|\b650\b|900,000|Value \(IQD\)|Cost /", re.sub(r"<script[^>]*>[\s\S]*?</script>", "", html))
+        leak = re.search(r"IQD|(?<![\w,.])8,?000(?![\w,.])|\b650\b|900,000|Value \(IQD\)|Cost /", re.sub(r"<script[^>]*>[\s\S]*?</script>", "", html))  # whole numbers only: random ids may contain "8000"
         flight = re.search(r'"(cost|costIqd|unitPrice|price|value|total)":\s*[0-9"]', html)
         ck(f"warehouse {path.split('?')[0]}: no prices or values (page and page data)", st == 200 and not leak and not flight, (leak.group(0) if leak else "") + (flight.group(0) if flight else "") + f" {st}")
     st, csv = get(f"/api/reports/warehouse-daily?{RANGE}&group=movement", WH)

@@ -84,3 +84,17 @@ describe("production days", () => {
     expect(() => dayValue("23/10/2026")).toThrow();
   });
 });
+
+describe("packaging: pieces in one (PACK) — the Bereket FMS carton rule", () => {
+  const carton = { id: "c", code: "CTN", name: "Carton", unit: "pcs" };
+  const cup = { id: "u", code: "CUP", name: "Cup", unit: "pcs" };
+  it("1,400 pieces with 12 in one carton take 117 cartons (a started carton counts)", () => {
+    const n = needsFor({ components: [{ qty: 12, per: "PACK", component: carton }, { qty: 1, per: "PIECE", component: cup }] }, 1, 1400);
+    expect(n.find((x) => x.code === "CTN")?.qty).toBe(117);
+    expect(n.find((x) => x.code === "CUP")?.qty).toBe(1400);
+  });
+  it("exact multiples are not rounded up; nothing made, nothing used", () => {
+    expect(needsFor({ components: [{ qty: 24, per: "PACK", component: carton }] }, 1, 480)[0].qty).toBe(20);
+    expect(needsFor({ components: [{ qty: 24, per: "PACK", component: carton }] }, 1, 0)).toEqual([]);
+  });
+});
